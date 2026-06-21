@@ -2,5 +2,8 @@
 
 add_executable(tst_eccodec tst_eccodec.cpp)
 target_link_libraries(tst_eccodec PRIVATE ec-core Qt6::Test)
-
 add_test(NAME eccodec COMMAND tst_eccodec)
+
+add_executable(tst_ecauth tst_ecauth.cpp)
+target_link_libraries(tst_ecauth PRIVATE ec-core Qt6::Test)
+add_test(NAME ecauth COMMAND tst_ecauth)
