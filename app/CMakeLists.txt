@@ -33,3 +33,4 @@ add_executable(amule-remote-qt
 )
 
 target_link_libraries(amule-remote-qt PRIVATE ec-core Qt6::Widgets Qt6::Svg)
+target_compile_definitions(amule-remote-qt PRIVATE APP_VERSION="${PROJECT_VERSION}")

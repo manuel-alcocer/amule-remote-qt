@@ -1,5 +1,9 @@
 #include "mainwindow.h"
 
+#ifndef APP_VERSION
+#define APP_VERSION "0.1.0"
+#endif
+
 #include <QAction>
 #include <QCheckBox>
 #include <QDir>
@@ -84,6 +88,10 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     if (const QByteArray state = settings.value(QStringLiteral("windowState")).toByteArray();
         !state.isEmpty())
         restoreState(state);
+
+    // Welcome banner on the LED panel until the first connection.
+    speedGraph_->showMessage(
+        QStringLiteral("Amule-Remote Qt %1").arg(QStringLiteral(APP_VERSION)));
 }
 
 MainWindow::~MainWindow() = default;
@@ -511,6 +519,7 @@ void MainWindow::onStatusChanged(ConnStatus status, const QString& detail) {
         statusLabel_->setText(QStringLiteral("Connected — daemon %1").arg(detail));
         color = QStringLiteral("#4cc06a");
         connected = true;
+        speedGraph_->dismissMessage(); // scroll the welcome banner away
         break;
     case ConnStatus::Error:
         statusLabel_->setText(QStringLiteral("Error: %1").arg(detail));

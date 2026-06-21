@@ -5,9 +5,12 @@
 #pragma once
 
 #include <QList>
+#include <QString>
 #include <QWidget>
 
 #include <QtTypes>
+
+class QTimer;
 
 namespace amule {
 
@@ -24,6 +27,11 @@ public:
     void save(const QString& path) const;
     void load(const QString& path);
 
+    // Show a scrolling LED message instead of the graph (e.g. a welcome banner).
+    void showMessage(const QString& text);
+    // Scroll the current message off to the left, then reveal the graph.
+    void dismissMessage();
+
 public slots:
     void addSample(quint64 downBytesPerSec, quint64 upBytesPerSec);
     void clear();
@@ -34,8 +42,15 @@ protected:
 private:
     static constexpr int kMaxSamples = 180; // ~3 min at 1 Hz
 
+    enum class Mode { Graph, Message };
+
     QList<quint64> down_;
     QList<quint64> up_;
+
+    Mode mode_ = Mode::Graph;
+    QString message_;
+    int scrollCols_ = 0;        // how far the message has scrolled left, in LEDs
+    QTimer* dismissTimer_ = nullptr;
 };
 
 } // namespace amule
