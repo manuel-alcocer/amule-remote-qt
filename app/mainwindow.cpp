@@ -382,6 +382,27 @@ void MainWindow::buildMenuBar() {
     langMenu->addSeparator();
     for (const i18n::Language& lang : i18n::languages())
         addLang(lang.nativeName, lang.code);
+
+    auto* helpMenu = menuBar()->addMenu(tr("&Help"));
+    connect(helpMenu->addAction(tr("About aMule Remote")), &QAction::triggered, this, [this] {
+        QMessageBox box(this);
+        box.setWindowTitle(tr("About aMule Remote"));
+        box.setIconPixmap(QIcon(QStringLiteral(":/icons/app.svg")).pixmap(64, 64));
+        box.setTextFormat(Qt::RichText);
+        box.setText(
+            tr("<h3>aMule Remote %1</h3>"
+               "<p>A <a href=\"https://linuxarena.net\">linuxarena.net</a> project — "
+               "a Qt remote control for the aMule daemon over the EC protocol.</p>"
+               "<p><b>Manuel Alcocer J.</b><br>"
+               "<a href=\"mailto:hostmaster@linuxarena.net\">hostmaster@linuxarena.net</a><br>"
+               "Sevilla, Andalucía (España)</p>"
+               "<p><a href=\"https://linuxarena.net/en/apps/amule-remote-qt/\">Project page</a> · "
+               "<a href=\"https://github.com/manuel-alcocer/amule-remote-qt\">GitHub</a></p>"
+               "<p>License: GPL-3.0-or-later</p>")
+                .arg(QStringLiteral(APP_VERSION)));
+        box.setTextInteractionFlags(Qt::TextBrowserInteraction);
+        box.exec();
+    });
 }
 
 void MainWindow::wireWorker() {

@@ -245,7 +245,7 @@
     </message>
     <message>
         <location filename="../mainwindow.cpp" line="127"/>
-        <location filename="../mainwindow.cpp" line="443"/>
+        <location filename="../mainwindow.cpp" line="464"/>
         <source>Connect</source>
         <translation>Conectar</translation>
     </message>
@@ -386,127 +386,143 @@
         <translation>Predeterminado del sistema</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="444"/>
+        <location filename="../mainwindow.cpp" line="386"/>
+        <source>&amp;Help</source>
+        <translation>&amp;Ayuda</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="387"/>
+        <location filename="../mainwindow.cpp" line="389"/>
+        <source>About aMule Remote</source>
+        <translation>Acerca de aMule Remote</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="393"/>
+        <source>&lt;h3&gt;aMule Remote %1&lt;/h3&gt;&lt;p&gt;A &lt;a href=&quot;https://linuxarena.net&quot;&gt;linuxarena.net&lt;/a&gt; project — a Qt remote control for the aMule daemon over the EC protocol.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Manuel Alcocer J.&lt;/b&gt;&lt;br&gt;&lt;a href=&quot;mailto:hostmaster@linuxarena.net&quot;&gt;hostmaster@linuxarena.net&lt;/a&gt;&lt;br&gt;Sevilla, Andalucía (España)&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://linuxarena.net/en/apps/amule-remote-qt/&quot;&gt;Project page&lt;/a&gt; · &lt;a href=&quot;https://github.com/manuel-alcocer/amule-remote-qt&quot;&gt;GitHub&lt;/a&gt;&lt;/p&gt;&lt;p&gt;License: GPL-3.0-or-later&lt;/p&gt;</source>
+        <translation>&lt;h3&gt;aMule Remote %1&lt;/h3&gt;&lt;p&gt;Un proyecto de &lt;a href=&quot;https://linuxarena.net&quot;&gt;linuxarena.net&lt;/a&gt; — un control remoto Qt para el demonio aMule por el protocolo EC.&lt;/p&gt;&lt;p&gt;&lt;b&gt;Manuel Alcocer J.&lt;/b&gt;&lt;br&gt;&lt;a href=&quot;mailto:hostmaster@linuxarena.net&quot;&gt;hostmaster@linuxarena.net&lt;/a&gt;&lt;br&gt;Sevilla, Andalucía (España)&lt;/p&gt;&lt;p&gt;&lt;a href=&quot;https://linuxarena.net/es/apps/amule-remote-qt/&quot;&gt;Página del proyecto&lt;/a&gt; · &lt;a href=&quot;https://github.com/manuel-alcocer/amule-remote-qt&quot;&gt;GitHub&lt;/a&gt;&lt;/p&gt;&lt;p&gt;Licencia: GPL-3.0-or-later&lt;/p&gt;</translation>
+    </message>
+    <message>
+        <location filename="../mainwindow.cpp" line="465"/>
         <source>Remove</source>
         <translation>Quitar</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="458"/>
+        <location filename="../mainwindow.cpp" line="479"/>
         <source>enter a host first</source>
         <translation>introduzca primero un host</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="489"/>
+        <location filename="../mainwindow.cpp" line="510"/>
         <source>Pause</source>
         <translation>Pausar</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="490"/>
+        <location filename="../mainwindow.cpp" line="511"/>
         <source>Resume</source>
         <translation>Reanudar</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="491"/>
+        <location filename="../mainwindow.cpp" line="512"/>
         <source>Stop</source>
         <translation>Detener</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="493"/>
+        <location filename="../mainwindow.cpp" line="514"/>
         <source>Priority</source>
         <translation>Prioridad</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="494"/>
+        <location filename="../mainwindow.cpp" line="515"/>
         <source>Low</source>
         <translation>Baja</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="495"/>
+        <location filename="../mainwindow.cpp" line="516"/>
         <source>Normal</source>
         <translation>Normal</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="496"/>
+        <location filename="../mainwindow.cpp" line="517"/>
         <source>High</source>
         <translation>Alta</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="497"/>
+        <location filename="../mainwindow.cpp" line="518"/>
         <source>Auto</source>
         <translation>Auto</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="500"/>
+        <location filename="../mainwindow.cpp" line="521"/>
         <source>Delete…</source>
         <translation>Eliminar…</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="535"/>
+        <location filename="../mainwindow.cpp" line="556"/>
         <source>Delete download</source>
         <translation>Eliminar descarga</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="536"/>
+        <location filename="../mainwindow.cpp" line="557"/>
         <source>Delete %1 download(s) from the queue?</source>
         <translation>¿Eliminar %1 descarga(s) de la cola?</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="553"/>
+        <location filename="../mainwindow.cpp" line="574"/>
         <source>Disconnected</source>
         <translation>Desconectado</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="556"/>
+        <location filename="../mainwindow.cpp" line="577"/>
         <source>Connecting to %1…</source>
         <translation>Conectando a %1…</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="561"/>
+        <location filename="../mainwindow.cpp" line="582"/>
         <source>Connected — daemon %1</source>
         <translation>Conectado — demonio %1</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="567"/>
+        <location filename="../mainwindow.cpp" line="588"/>
         <source>Error: %1</source>
         <translation>Error: %1</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="587"/>
+        <location filename="../mainwindow.cpp" line="608"/>
         <source>↓ %1   ↑ %2   ed2k %3 users%4</source>
         <translation>↓ %1   ↑ %2   ed2k %3 usuarios%4</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="590"/>
+        <location filename="../mainwindow.cpp" line="611"/>
         <source>   HighID</source>
         <translation>   HighID</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="596"/>
+        <location filename="../mainwindow.cpp" line="617"/>
         <source>ed2k: %1</source>
         <translation>ed2k: %1</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="597"/>
+        <location filename="../mainwindow.cpp" line="618"/>
         <source>ed2k: off</source>
         <translation>ed2k: desactivado</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="599"/>
+        <location filename="../mainwindow.cpp" line="620"/>
         <source>Kad: on</source>
         <translation>Kad: activado</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="599"/>
+        <location filename="../mainwindow.cpp" line="620"/>
         <source>Kad: off</source>
         <translation>Kad: desactivado</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="615"/>
+        <location filename="../mainwindow.cpp" line="636"/>
         <source>Update server list</source>
         <translation>Actualizar lista de servidores</translation>
     </message>
     <message>
-        <location filename="../mainwindow.cpp" line="616"/>
+        <location filename="../mainwindow.cpp" line="637"/>
         <source>server.met URL:</source>
         <translation>URL de server.met:</translation>
     </message>
