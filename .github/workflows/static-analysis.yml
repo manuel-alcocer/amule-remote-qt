@@ -56,9 +56,9 @@ jobs:
           clang-tidy-20 -p build $(find core app -name '*.cpp')
 
       - name: cppcheck
+        # Scan our sources directly (not the autogen build tree, whose moc files
+        # carry an intentional #error guard).
         run: |
-          cppcheck --project=build/compile_commands.json \
-            --enable=warning --inline-suppr --library=qt --std=c++23 \
+          cppcheck --enable=warning --inline-suppr --library=qt --std=c++23 \
             --suppressions-list=.cppcheck-suppressions \
-            -i "$GITHUB_WORKSPACE/build" \
-            --error-exitcode=1
+            -I core --error-exitcode=1 core app
