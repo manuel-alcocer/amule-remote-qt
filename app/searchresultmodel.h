@@ -24,6 +24,7 @@ public:
                         int role) const override;
 
     [[nodiscard]] Hash16 hashAt(int row) const;
+    [[nodiscard]] SearchResult resultAt(int row) const;
 
 public slots:
     void setResults(const QList<amule::SearchResult>& results);

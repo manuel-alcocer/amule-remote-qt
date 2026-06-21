@@ -73,6 +73,12 @@ Hash16 SearchResultModel::hashAt(int row) const {
     return results_.at(row).hash;
 }
 
+SearchResult SearchResultModel::resultAt(int row) const {
+    if (row < 0 || row >= results_.size())
+        return {};
+    return results_.at(row);
+}
+
 void SearchResultModel::setResults(const QList<SearchResult>& results) {
     beginResetModel();
     results_ = results;
