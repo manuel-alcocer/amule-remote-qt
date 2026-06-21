@@ -105,8 +105,9 @@ std::expected<std::vector<Download>, EcError> fetchDownloads(EcClient& client) {
         d.ecid = static_cast<quint32>(tag.asInt().value_or(0));
         d.partMetId =
             static_cast<quint32>(tag.childInt(EC_TAG_PARTFILE_PARTMETID).value_or(0));
-        if (const Tag* h = tag.child(EC_TAG_PARTFILE_HASH); h && h->asHash())
-            d.hash = *h->asHash();
+        const Tag* h = tag.child(EC_TAG_PARTFILE_HASH);
+        if (auto hash = h ? h->asHash() : std::optional<Hash16>{})
+            d.hash = *hash;
         else if (auto h2 = tag.asHash())
             d.hash = *h2;
         d.name = tag.childString(EC_TAG_PARTFILE_NAME).value_or(QString());
@@ -202,8 +203,9 @@ std::expected<std::vector<SharedFile>, EcError> fetchSharedFiles(EcClient& clien
         f.transferred = tag.childInt(EC_TAG_KNOWNFILE_XFERRED_ALL).value_or(0);
         f.completeSources = tag.childInt(EC_TAG_KNOWNFILE_COMPLETE_SOURCES).value_or(0);
         f.ed2kLink = tag.childString(EC_TAG_PARTFILE_ED2K_LINK).value_or(QString());
-        if (const Tag* h = tag.child(EC_TAG_PARTFILE_HASH); h && h->asHash())
-            f.hash = *h->asHash();
+        const Tag* h = tag.child(EC_TAG_PARTFILE_HASH);
+        if (auto hash = h ? h->asHash() : std::optional<Hash16>{})
+            f.hash = *hash;
         files.push_back(std::move(f));
     }
     return files;
@@ -345,8 +347,9 @@ fetchSearchResults(EcClient& client) {
             continue;
         SearchResult r;
         r.ecid = static_cast<quint32>(tag.asInt().value_or(0));
-        if (const Tag* h = tag.child(EC_TAG_PARTFILE_HASH); h && h->asHash())
-            r.hash = *h->asHash();
+        const Tag* h = tag.child(EC_TAG_PARTFILE_HASH);
+        if (auto hash = h ? h->asHash() : std::optional<Hash16>{})
+            r.hash = *hash;
         r.name = tag.childString(EC_TAG_PARTFILE_NAME).value_or(QString());
         r.size = tag.childInt(EC_TAG_PARTFILE_SIZE_FULL).value_or(0);
         r.sourceCount = tag.childInt(EC_TAG_PARTFILE_SOURCE_COUNT).value_or(0);
