@@ -1,16 +1,17 @@
-# Test build for a release candidate. Pushing a release/<version> branch (cut
-# from devel after the static-analysis gate passes) builds the app on Linux and
-# Windows, runs the tests, packages a self-contained AppImage / a windeployqt
-# zip, and uploads them as artifacts to validate before tagging on main.
+# Release-candidate build. Each push to a release/<version> branch (cut from
+# devel after the static-analysis gate passes) builds the Linux AppImage and the
+# Windows zip and publishes them as an auto-numbered pre-release
+# v<version>-RC.<N> for testing before the final tag on main. A workflow_dispatch
+# run (any branch) only builds/uploads artifacts, without publishing an RC.
 name: release-build
 
 on:
   push:
     branches: ['release/**']
-  workflow_dispatch: {} # allow manual test runs on any branch
+  workflow_dispatch: {}
 
 permissions:
-  contents: read
+  contents: write # publish-rc creates the pre-release
 
 jobs:
   linux:
@@ -21,37 +22,30 @@ jobs:
       NO_STRIP: 1                 # avoid linuxdeploy's strip on .relr.dyn libs
     steps:
       - uses: actions/checkout@v4
-
       - name: Install toolchain
         run: |
           sudo apt-get update
           sudo apt-get install -y g++-14 ninja-build wget file
-
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: 6.8.1
           cache: true
-
       - name: Configure (Release)
         env:
           CC: gcc-14
           CXX: g++-14
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-
       - name: Build
         run: cmake --build build
-
       - name: Tests
         run: ctest --test-dir build --output-on-failure
-
       - name: Derive version
         id: ver
         run: |
           v="${GITHUB_REF_NAME#release/}"
           case "$v" in */*|"") v="snapshot";; esac
           echo "version=$v" >> "$GITHUB_OUTPUT"
-
       - name: Build AppImage
         env:
           QMAKE: ${{ env.QT_ROOT_DIR }}/bin/qmake
@@ -62,18 +56,15 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy*.AppImage
           ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
-
       - name: Smoke-test AppImage
         run: |
           chmod +x amule-remote-qt-*-x86_64.AppImage
           ./amule-remote-qt-*-x86_64.AppImage --selftest
-
-      - name: Upload AppImage
+      - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
-          name: amule-remote-qt-${{ steps.ver.outputs.version }}-AppImage
+          name: appimage
           path: amule-remote-qt-*-x86_64.AppImage
-          retention-days: 14
 
   windows:
     runs-on: windows-2022
@@ -84,45 +75,70 @@ jobs:
         shell: bash
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up MSVC
         uses: ilammy/msvc-dev-cmd@v1
-
       - name: Install Ninja
         run: choco install ninja -y
-
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: 6.8.1
           arch: win64_msvc2022_64
           cache: true
-
       - name: Configure (Release)
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-
       - name: Build
         run: cmake --build build
-
       - name: Tests
         run: ctest --test-dir build --output-on-failure
-
+      - name: Derive version
+        id: ver
+        run: |
+          v="${GITHUB_REF_NAME#release/}"
+          case "$v" in */*|"") v="snapshot";; esac
+          echo "version=$v" >> "$GITHUB_OUTPUT"
       - name: Deploy Qt runtime
         run: |
           mkdir -p dist
           cp build/app/amule-remote-qt.exe dist/
           "$QT_ROOT_DIR/bin/windeployqt.exe" --release --compiler-runtime dist/amule-remote-qt.exe
-
       - name: Package zip
         shell: pwsh
         run: |
-          $v = "${{ github.ref_name }}" -replace '^release/',''
-          if ($v -match '/' -or $v -eq '') { $v = 'snapshot' }
-          Compress-Archive -Path dist/* -DestinationPath "amule-remote-qt-$v-windows-x64.zip" -Force
-
-      - name: Upload Windows zip
+          Compress-Archive -Path dist/* -DestinationPath "amule-remote-qt-${{ steps.ver.outputs.version }}-windows-x64.zip" -Force
+      - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
-          name: amule-remote-qt-windows-x64
+          name: windows
           path: amule-remote-qt-*-windows-x64.zip
-          retention-days: 14
+
+  publish-rc:
+    needs: [linux, windows]
+    runs-on: ubuntu-24.04
+    # Only publish a release candidate for actual release/* branches.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/release/')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Compute RC tag
+        id: rc
+        run: |
+          ver="${GITHUB_REF_NAME#release/}"
+          last=$(git tag -l "v${ver}-RC.*" | sed -E 's/.*-RC\.//' | sort -n | tail -1)
+          n=$(( ${last:-0} + 1 ))
+          echo "tag=v${ver}-RC.${n}" >> "$GITHUB_OUTPUT"
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - name: Publish pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.rc.outputs.tag }}
+          name: ${{ steps.rc.outputs.tag }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          files: assets/*
