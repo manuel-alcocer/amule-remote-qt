@@ -1,13 +1,16 @@
 #include "mainwindow.h"
 
+#include <QAction>
 #include <QCheckBox>
 #include <QDockWidget>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
+#include <QToolBar>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSettings>
@@ -31,6 +34,7 @@ namespace amule {
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     buildUi();
+    buildToolBar();
     wireWorker();
     loadSettings();
     onStatusChanged(ConnStatus::Disconnected, QString());
@@ -168,6 +172,46 @@ void MainWindow::buildUi() {
             &MainWindow::onServerContextMenu);
 }
 
+void MainWindow::buildToolBar() {
+    auto* toolbar = addToolBar(QStringLiteral("Network"));
+    toolbar->setToolButtonStyle(Qt::ToolButtonTextOnly);
+
+    const auto addCommand = [&](const QString& text, const char* slot) {
+        QAction* action = toolbar->addAction(text);
+        connect(action, &QAction::triggered, this, [this, slot] {
+            QMetaObject::invokeMethod(worker(), slot, Qt::QueuedConnection);
+        });
+        connectedActions_.append(action);
+        return action;
+    };
+
+    addCommand(QStringLiteral("Connect networks"), "connectNetworks");
+    addCommand(QStringLiteral("Disconnect networks"), "disconnectNetworks");
+    toolbar->addSeparator();
+    addCommand(QStringLiteral("Start Kad"), "startKad");
+    addCommand(QStringLiteral("Stop Kad"), "stopKad");
+    toolbar->addSeparator();
+    addCommand(QStringLiteral("Connect server"), "serverConnectAny");
+    addCommand(QStringLiteral("Disconnect server"), "serverDisconnect");
+    toolbar->addSeparator();
+
+    QAction* addLinkAction = toolbar->addAction(QStringLiteral("Add ed2k link…"));
+    connect(addLinkAction, &QAction::triggered, this, &MainWindow::onAddLink);
+    connectedActions_.append(addLinkAction);
+
+    addCommand(QStringLiteral("Clear completed"), "clearCompleted");
+}
+
+void MainWindow::onAddLink() {
+    bool ok = false;
+    const QString link = QInputDialog::getText(
+        this, QStringLiteral("Add ed2k link"), QStringLiteral("ed2k:// link:"),
+        QLineEdit::Normal, QString(), &ok);
+    if (ok && !link.trimmed().isEmpty())
+        QMetaObject::invokeMethod(worker(), "addLink", Qt::QueuedConnection,
+                                  Q_ARG(QString, link.trimmed()));
+}
+
 void MainWindow::wireWorker() {
     EcWorker* w = worker();
     // Queued automatically: the worker lives on another thread.
@@ -302,6 +346,8 @@ void MainWindow::onStatusChanged(ConnStatus status, const QString& detail) {
     }
     connectBtn_->setEnabled(!connected && !connecting);
     disconnectBtn_->setEnabled(connected);
+    for (QAction* action : connectedActions_)
+        action->setEnabled(connected);
     if (!connected) {
         netLabel_->clear();
         statsLabel_->clear();
