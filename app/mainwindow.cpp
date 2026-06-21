@@ -2,7 +2,9 @@
 
 #include <QAction>
 #include <QCheckBox>
+#include <QDir>
 #include <QDockWidget>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QInputDialog>
@@ -31,6 +33,27 @@
 #include "sourcetablemodel.h"
 
 namespace amule {
+namespace {
+
+// First-run fallback (ADR-0006): read the default Host/Port from aMule's own
+// remote control config, ~/.aMule/remote.conf [EC]. Returns empty/0 if absent.
+struct RemoteConfEc {
+    QString host;
+    int port = 0;
+};
+
+RemoteConfEc readRemoteConfEc() {
+    const QString path = QDir::homePath() + QStringLiteral("/.aMule/remote.conf");
+    if (!QFileInfo::exists(path))
+        return {};
+    QSettings conf(path, QSettings::IniFormat);
+    RemoteConfEc ec;
+    ec.host = conf.value(QStringLiteral("EC/Host")).toString().trimmed();
+    ec.port = conf.value(QStringLiteral("EC/Port")).toInt();
+    return ec;
+}
+
+} // namespace
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     buildUi();
@@ -377,9 +400,22 @@ void MainWindow::onLog(const QString& message) {
 
 void MainWindow::loadSettings() {
     QSettings settings;
-    hostEdit_->setText(settings.value(QStringLiteral("host"),
-                                      QStringLiteral("127.0.0.1")).toString());
-    portSpin_->setValue(settings.value(QStringLiteral("port"), 4712).toInt());
+    QString host = settings.value(QStringLiteral("host")).toString();
+    int port = settings.value(QStringLiteral("port")).toInt();
+
+    if (host.isEmpty()) {
+        // First run: fall back to aMule's remote.conf, then built-in defaults.
+        const RemoteConfEc ec = readRemoteConfEc();
+        host = ec.host.isEmpty() ? QStringLiteral("127.0.0.1") : ec.host;
+        if (port == 0)
+            port = ec.port > 0 ? ec.port : 4712;
+    }
+    if (port == 0)
+        port = 4712;
+
+    hostEdit_->setText(host);
+    portSpin_->setValue(port);
+
     const bool remember = settings.value(QStringLiteral("remember"), false).toBool();
     rememberCheck_->setChecked(remember);
     if (remember) {
