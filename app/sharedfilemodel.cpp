@@ -67,17 +67,17 @@ QVariant SharedFileModel::headerData(int section, Qt::Orientation orientation,
         return {};
     switch (section) {
     case Name:
-        return QStringLiteral("Name");
+        return tr("Name");
     case Size:
-        return QStringLiteral("Size");
+        return tr("Size");
     case Requests:
-        return QStringLiteral("Requests");
+        return tr("Requests");
     case Accepted:
-        return QStringLiteral("Accepted");
+        return tr("Accepted");
     case Transferred:
-        return QStringLiteral("Transferred");
+        return tr("Transferred");
     case Sources:
-        return QStringLiteral("Sources");
+        return tr("Sources");
     default:
         return {};
     }

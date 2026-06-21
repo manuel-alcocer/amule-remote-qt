@@ -8,16 +8,16 @@
 namespace amule {
 
 AddServerDialog::AddServerDialog(QWidget* parent) : QDialog(parent) {
-    setWindowTitle(QStringLiteral("Add server"));
+    setWindowTitle(tr("Add server"));
 
     nameEdit_ = new QLineEdit;
-    nameEdit_->setPlaceholderText(QStringLiteral("optional name"));
+    nameEdit_->setPlaceholderText(tr("optional name"));
     addressEdit_ = new QLineEdit;
-    addressEdit_->setPlaceholderText(QStringLiteral("host:port"));
+    addressEdit_->setPlaceholderText(tr("host:port"));
 
     auto* form = new QFormLayout;
-    form->addRow(QStringLiteral("Name:"), nameEdit_);
-    form->addRow(QStringLiteral("Address:"), addressEdit_);
+    form->addRow(tr("Name:"), nameEdit_);
+    form->addRow(tr("Address:"), addressEdit_);
 
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
