@@ -22,6 +22,7 @@ class QTableView;
 namespace amule {
 
 class DownloadTableModel;
+class PreferencesPanel;
 class SearchPanel;
 class ServerTableModel;
 class SharedFileModel;
@@ -51,8 +52,6 @@ private slots:
     void onStatusChanged(amule::ConnStatus status, const QString& detail);
     void onStats(amule::Stats stats);
     void onConnState(amule::ConnState conn);
-    void onPrefs(amule::DaemonPrefs prefs);
-    void onOpenPreferences();
     void onLog(const QString& message);
 
 private:
@@ -76,6 +75,7 @@ private:
     SpeedGraph* speedGraph_ = nullptr;
     QTableView* table_ = nullptr;
     SearchPanel* searchPanel_ = nullptr;
+    PreferencesPanel* preferencesPanel_ = nullptr;
     QTableView* serverTable_ = nullptr;
     ServerTableModel* serverModel_ = nullptr;
     SharedFileModel* sharedModel_ = nullptr;

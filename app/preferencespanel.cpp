@@ -1,69 +1,59 @@
-#include "preferencesdialog.h"
+#include "preferencespanel.h"
 
 #include <QCheckBox>
-#include <QDialogButtonBox>
 #include <QFormLayout>
-#include <QGroupBox>
+#include <QHBoxLayout>
 #include <QLineEdit>
+#include <QPushButton>
 #include <QSpinBox>
+#include <QTabWidget>
 #include <QVBoxLayout>
 
 namespace amule {
 namespace {
 
-QSpinBox* makeRate(quint64 value) {
+QSpinBox* makeRate() {
     auto* box = new QSpinBox;
     box->setRange(0, 1'000'000);
     box->setSuffix(QStringLiteral(" kB/s"));
     box->setSpecialValueText(QStringLiteral("Unlimited")); // shown at 0
-    box->setValue(static_cast<int>(value));
     return box;
 }
 
-QSpinBox* makeCount(quint64 value, int max) {
+QSpinBox* makeCount(int max) {
     auto* box = new QSpinBox;
     box->setRange(0, max);
-    box->setValue(static_cast<int>(value));
     return box;
 }
 
-QSpinBox* makePort(quint64 value) {
+QSpinBox* makePort() {
     auto* box = new QSpinBox;
     box->setRange(0, 65535);
-    box->setValue(static_cast<int>(value));
     return box;
 }
 
 } // namespace
 
-PreferencesDialog::PreferencesDialog(const DaemonPrefs& prefs, QWidget* parent)
-    : QDialog(parent), initial_(prefs) {
-    setWindowTitle(QStringLiteral("Daemon preferences"));
-
-    maxDownload_ = makeRate(prefs.maxDownload);
-    maxUpload_ = makeRate(prefs.maxUpload);
-    slotAllocation_ = makeRate(prefs.slotAllocation);
-    tcpPort_ = makePort(prefs.tcpPort);
-    udpPort_ = makePort(prefs.udpPort);
-    maxSources_ = makeCount(prefs.maxSources, 5000);
-    maxConnections_ = makeCount(prefs.maxConnections, 5000);
+PreferencesPanel::PreferencesPanel(QWidget* parent) : QWidget(parent) {
+    maxDownload_ = makeRate();
+    maxUpload_ = makeRate();
+    slotAllocation_ = makeRate();
+    tcpPort_ = makePort();
+    udpPort_ = makePort();
+    maxSources_ = makeCount(5000);
+    maxConnections_ = makeCount(5000);
     networkEd2k_ = new QCheckBox(QStringLiteral("ed2k network"));
-    networkEd2k_->setChecked(prefs.networkEd2k);
     networkKad_ = new QCheckBox(QStringLiteral("Kad network"));
-    networkKad_->setChecked(prefs.networkKad);
     autoconnect_ = new QCheckBox(QStringLiteral("Auto-connect on start"));
-    autoconnect_->setChecked(prefs.autoconnect);
     reconnect_ = new QCheckBox(QStringLiteral("Reconnect on loss"));
-    reconnect_->setChecked(prefs.reconnect);
-    incomingDir_ = new QLineEdit(prefs.incomingDir);
-    tempDir_ = new QLineEdit(prefs.tempDir);
+    incomingDir_ = new QLineEdit;
+    tempDir_ = new QLineEdit;
     shareHidden_ = new QCheckBox(QStringLiteral("Share hidden files"));
-    shareHidden_->setChecked(prefs.shareHidden);
     autoRescan_ = new QCheckBox(QStringLiteral("Auto-rescan shared"));
-    autoRescan_->setChecked(prefs.autoRescan);
 
-    auto* connBox = new QGroupBox(QStringLiteral("Connection"));
-    auto* connForm = new QFormLayout(connBox);
+    // Connection subtab.
+    auto* connWidget = new QWidget;
+    auto* connForm = new QFormLayout(connWidget);
     connForm->addRow(QStringLiteral("Max download:"), maxDownload_);
     connForm->addRow(QStringLiteral("Max upload:"), maxUpload_);
     connForm->addRow(QStringLiteral("Upload slot rate:"), slotAllocation_);
@@ -76,25 +66,56 @@ PreferencesDialog::PreferencesDialog(const DaemonPrefs& prefs, QWidget* parent)
     connForm->addRow(autoconnect_);
     connForm->addRow(reconnect_);
 
-    auto* dirBox = new QGroupBox(QStringLiteral("Directories"));
-    auto* dirForm = new QFormLayout(dirBox);
+    // Directories subtab.
+    auto* dirWidget = new QWidget;
+    auto* dirForm = new QFormLayout(dirWidget);
     dirForm->addRow(QStringLiteral("Incoming:"), incomingDir_);
     dirForm->addRow(QStringLiteral("Temp:"), tempDir_);
     dirForm->addRow(shareHidden_);
     dirForm->addRow(autoRescan_);
 
-    auto* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    auto* subtabs = new QTabWidget;
+    subtabs->addTab(connWidget, QStringLiteral("Connection"));
+    subtabs->addTab(dirWidget, QStringLiteral("Directories"));
+
+    auto* reloadBtn = new QPushButton(QStringLiteral("Reload"));
+    auto* applyBtn = new QPushButton(QStringLiteral("Apply"));
+    auto* buttons = new QHBoxLayout;
+    buttons->addStretch(1);
+    buttons->addWidget(reloadBtn);
+    buttons->addWidget(applyBtn);
 
     auto* layout = new QVBoxLayout(this);
-    layout->addWidget(connBox);
-    layout->addWidget(dirBox);
-    layout->addWidget(buttons);
+    layout->addWidget(subtabs, 1);
+    layout->addLayout(buttons);
+
+    connect(applyBtn, &QPushButton::clicked, this,
+            [this] { emit applyRequested(collect()); });
+    connect(reloadBtn, &QPushButton::clicked, this,
+            [this] { emit reloadRequested(); });
 }
 
-DaemonPrefs PreferencesDialog::prefs() const {
-    DaemonPrefs p = initial_; // preserve loaded flag and any untouched fields
+void PreferencesPanel::setPrefs(DaemonPrefs prefs) {
+    current_ = prefs;
+    maxDownload_->setValue(static_cast<int>(prefs.maxDownload));
+    maxUpload_->setValue(static_cast<int>(prefs.maxUpload));
+    slotAllocation_->setValue(static_cast<int>(prefs.slotAllocation));
+    tcpPort_->setValue(static_cast<int>(prefs.tcpPort));
+    udpPort_->setValue(static_cast<int>(prefs.udpPort));
+    maxSources_->setValue(static_cast<int>(prefs.maxSources));
+    maxConnections_->setValue(static_cast<int>(prefs.maxConnections));
+    networkEd2k_->setChecked(prefs.networkEd2k);
+    networkKad_->setChecked(prefs.networkKad);
+    autoconnect_->setChecked(prefs.autoconnect);
+    reconnect_->setChecked(prefs.reconnect);
+    incomingDir_->setText(prefs.incomingDir);
+    tempDir_->setText(prefs.tempDir);
+    shareHidden_->setChecked(prefs.shareHidden);
+    autoRescan_->setChecked(prefs.autoRescan);
+}
+
+DaemonPrefs PreferencesPanel::collect() const {
+    DaemonPrefs p = current_; // preserve loaded flag and any untouched fields
     p.maxDownload = static_cast<quint64>(maxDownload_->value());
     p.maxUpload = static_cast<quint64>(maxUpload_->value());
     p.slotAllocation = static_cast<quint64>(slotAllocation_->value());
