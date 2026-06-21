@@ -27,6 +27,7 @@
 
 #include "downloadtablemodel.h"
 #include "ec/client.h"
+#include "ec/codes.h"
 #include "preferencesdialog.h"
 #include "progressbardelegate.h"
 #include "searchpanel.h"
@@ -354,12 +355,38 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
     QAction* pause = menu.addAction(QStringLiteral("Pause"));
     QAction* resume = menu.addAction(QStringLiteral("Resume"));
     QAction* stop = menu.addAction(QStringLiteral("Stop"));
+
+    QMenu* priorityMenu = menu.addMenu(QStringLiteral("Priority"));
+    QAction* prioLow = priorityMenu->addAction(QStringLiteral("Low"));
+    QAction* prioNormal = priorityMenu->addAction(QStringLiteral("Normal"));
+    QAction* prioHigh = priorityMenu->addAction(QStringLiteral("High"));
+    QAction* prioAuto = priorityMenu->addAction(QStringLiteral("Auto"));
+
     menu.addSeparator();
     QAction* remove = menu.addAction(QStringLiteral("Delete…"));
 
     QAction* chosen = menu.exec(table_->viewport()->mapToGlobal(pos));
     if (!chosen)
         return;
+
+    // Priority submenu: send setPriority and return.
+    quint8 priority = 0;
+    bool isPriority = true;
+    if (chosen == prioLow)
+        priority = ec::prio::LOW;
+    else if (chosen == prioNormal)
+        priority = ec::prio::NORMAL;
+    else if (chosen == prioHigh)
+        priority = ec::prio::HIGH;
+    else if (chosen == prioAuto)
+        priority = ec::prio::AUTO;
+    else
+        isPriority = false;
+    if (isPriority) {
+        QMetaObject::invokeMethod(worker(), "setPriority", Qt::QueuedConnection,
+                                  Q_ARG(amule::Hash16, hash), Q_ARG(quint8, priority));
+        return;
+    }
 
     const char* slot = nullptr;
     if (chosen == pause)
