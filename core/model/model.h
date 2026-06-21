@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <array>
 #include <utility>
 #include <vector>
 
@@ -15,6 +16,9 @@
 namespace amule {
 
 using Hash16 = ec::Hash16;
+// Packed IPv4 address (4 octets). Aliased so it can be a single-token Qt
+// metatype (a bare std::array<quint8, 4> trips the comma in Q_DECLARE_METATYPE).
+using ServerIp = std::array<quint8, 4>;
 
 // A snapshot of daemon-wide statistics.
 struct Stats {
@@ -110,7 +114,7 @@ struct SearchResult {
 
 // An eD2k server entry.
 struct Server {
-    std::array<quint8, 4> ip{};
+    ServerIp ip{};
     quint16 port = 0;
     QString name;
     QString description;
