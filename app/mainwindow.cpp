@@ -76,11 +76,24 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     QDir().mkpath(dataDir);
     speedHistoryPath_ = dataDir + QStringLiteral("/speed_history.dat");
     speedGraph_->load(speedHistoryPath_);
+
+    // Restore the window geometry and dock/toolbar layout (e.g. whether the Log
+    // dock was left visible) from the last session.
+    QSettings settings;
+    if (const QByteArray geometry = settings.value(QStringLiteral("geometry")).toByteArray();
+        !geometry.isEmpty())
+        restoreGeometry(geometry);
+    if (const QByteArray state = settings.value(QStringLiteral("windowState")).toByteArray();
+        !state.isEmpty())
+        restoreState(state);
 }
 
 MainWindow::~MainWindow() = default;
 
 void MainWindow::closeEvent(QCloseEvent* event) {
+    QSettings settings;
+    settings.setValue(QStringLiteral("geometry"), saveGeometry());
+    settings.setValue(QStringLiteral("windowState"), saveState());
     if (!speedHistoryPath_.isEmpty())
         speedGraph_->save(speedHistoryPath_);
     QMainWindow::closeEvent(event);
@@ -216,8 +229,10 @@ void MainWindow::buildUi() {
 
     setCentralWidget(central);
 
-    // Activity log dock.
+    // Activity log dock. The object name lets QMainWindow::saveState persist
+    // its visibility/position across runs.
     auto* dock = new QDockWidget(QStringLiteral("Log"), this);
+    dock->setObjectName(QStringLiteral("logDock"));
     log_ = new QPlainTextEdit;
     log_->setReadOnly(true);
     log_->setMaximumBlockCount(500);
@@ -245,6 +260,7 @@ void MainWindow::buildUi() {
 
 void MainWindow::buildToolBar() {
     auto* toolbar = addToolBar(QStringLiteral("Network"));
+    toolbar->setObjectName(QStringLiteral("networkToolbar"));
     toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     toolbar->setMovable(false);
 
