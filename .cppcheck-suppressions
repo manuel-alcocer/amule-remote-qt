@@ -1,0 +1,12 @@
+# Cppcheck suppressions for the CI static-analysis gate.
+# Keep this list minimal and justified; prefer fixing real findings.
+
+# We analyse core/ and app/ sources directly (not the autogen build tree), so
+# cppcheck can't see Qt's headers — ignore the resulting include noise.
+missingInclude
+missingIncludeSystem
+# Public library API is intentionally broader than the app's current callers.
+unusedFunction
+# Housekeeping noise.
+checkersReport
+unmatchedSuppression

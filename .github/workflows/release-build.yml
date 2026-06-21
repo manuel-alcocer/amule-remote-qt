@@ -1,0 +1,60 @@
+# Test build for a release candidate. Pushing a release/<version> branch (cut
+# from devel after the static-analysis gate passes) builds the app, runs the
+# tests and uploads the binary as a workflow artifact to validate before it is
+# tagged on main.
+name: release-build
+
+on:
+  push:
+    branches: ['release/**']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14 ninja-build
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.8.1
+          cache: true
+
+      - name: Configure (Release)
+        env:
+          CC: gcc-14
+          CXX: g++-14
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Derive version
+        id: ver
+        run: echo "version=${GITHUB_REF_NAME#release/}" >> "$GITHUB_OUTPUT"
+
+      - name: Package binary
+        run: |
+          mkdir -p dist
+          cp build/app/amule-remote-qt dist/
+          tar -C dist -czf "amule-remote-qt-${{ steps.ver.outputs.version }}-linux-x86_64.tar.gz" .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: amule-remote-qt-${{ steps.ver.outputs.version }}-test-build
+          path: amule-remote-qt-*-linux-x86_64.tar.gz
+          retention-days: 14

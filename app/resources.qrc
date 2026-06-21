@@ -1,0 +1,15 @@
+<RCC>
+  <qresource prefix="/">
+    <file>icons/app.svg</file>
+    <file>icons/connect.svg</file>
+    <file>icons/disconnect.svg</file>
+    <file>icons/kad-start.svg</file>
+    <file>icons/kad-stop.svg</file>
+    <file>icons/server.svg</file>
+    <file>icons/server-off.svg</file>
+    <file>icons/add.svg</file>
+    <file>icons/clear.svg</file>
+    <file>icons/preferences.svg</file>
+    <file>icons/refresh.svg</file>
+  </qresource>
+</RCC>
