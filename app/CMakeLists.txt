@@ -25,6 +25,7 @@ add_executable(amule-remote-qt
     speedgraph.cpp
     addserverdialog.h
     addserverdialog.cpp
+    resources.qrc
 )
 
-target_link_libraries(amule-remote-qt PRIVATE ec-core Qt6::Widgets)
+target_link_libraries(amule-remote-qt PRIVATE ec-core Qt6::Widgets Qt6::Svg)

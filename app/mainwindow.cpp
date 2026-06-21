@@ -186,8 +186,10 @@ void MainWindow::buildUi() {
     auto* serversLayout = new QVBoxLayout(serversTab);
     serversLayout->setContentsMargins(0, 0, 0, 0);
     auto* serverButtons = new QHBoxLayout;
-    auto* addServerBtn = new QPushButton(QStringLiteral("Add server…"));
-    auto* updateServersBtn = new QPushButton(QStringLiteral("Update from URL…"));
+    auto* addServerBtn = new QPushButton(QIcon(QStringLiteral(":/icons/add.svg")),
+                                         QStringLiteral("Add server…"));
+    auto* updateServersBtn = new QPushButton(
+        QIcon(QStringLiteral(":/icons/refresh.svg")), QStringLiteral("Update from URL…"));
     serverButtons->addWidget(addServerBtn);
     serverButtons->addWidget(updateServersBtn);
     serverButtons->addStretch(1);
@@ -246,11 +248,14 @@ void MainWindow::buildToolBar() {
     toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
     toolbar->setMovable(false);
 
-    // Freedesktop theme icons; absent themes (e.g. on Windows) fall back to the
-    // text label, so the toolbar stays usable everywhere.
-    const auto addCommand = [&](const QString& text, const QString& icon,
+    // Bundled SVG icons (resources.qrc), rendered via Qt6::Svg so they look the
+    // same on every platform regardless of the desktop icon theme.
+    const auto icon = [](const QString& name) {
+        return QIcon(QStringLiteral(":/icons/%1.svg").arg(name));
+    };
+    const auto addCommand = [&](const QString& text, const QString& iconName,
                                 const char* slot) {
-        QAction* action = toolbar->addAction(QIcon::fromTheme(icon), text);
+        QAction* action = toolbar->addAction(icon(iconName), text);
         connect(action, &QAction::triggered, this, [this, slot] {
             QMetaObject::invokeMethod(worker(), slot, Qt::QueuedConnection);
         });
@@ -258,35 +263,31 @@ void MainWindow::buildToolBar() {
         return action;
     };
 
-    addCommand(QStringLiteral("Connect networks"),
-               QStringLiteral("network-transmit-receive"), "connectNetworks");
-    addCommand(QStringLiteral("Disconnect networks"),
-               QStringLiteral("network-offline"), "disconnectNetworks");
+    addCommand(QStringLiteral("Connect networks"), QStringLiteral("connect"),
+               "connectNetworks");
+    addCommand(QStringLiteral("Disconnect networks"), QStringLiteral("disconnect"),
+               "disconnectNetworks");
     toolbar->addSeparator();
-    addCommand(QStringLiteral("Start Kad"), QStringLiteral("network-wireless"),
-               "startKad");
-    addCommand(QStringLiteral("Stop Kad"),
-               QStringLiteral("network-wireless-offline"), "stopKad");
+    addCommand(QStringLiteral("Start Kad"), QStringLiteral("kad-start"), "startKad");
+    addCommand(QStringLiteral("Stop Kad"), QStringLiteral("kad-stop"), "stopKad");
     toolbar->addSeparator();
-    addCommand(QStringLiteral("Connect server"), QStringLiteral("network-server"),
+    addCommand(QStringLiteral("Connect server"), QStringLiteral("server"),
                "serverConnectAny");
-    addCommand(QStringLiteral("Disconnect server"),
-               QStringLiteral("network-server"), "serverDisconnect");
+    addCommand(QStringLiteral("Disconnect server"), QStringLiteral("server-off"),
+               "serverDisconnect");
     toolbar->addSeparator();
 
     QAction* addLinkAction =
-        toolbar->addAction(QIcon::fromTheme(QStringLiteral("list-add")),
-                           QStringLiteral("Add ed2k link…"));
+        toolbar->addAction(icon(QStringLiteral("add")), QStringLiteral("Add ed2k link…"));
     connect(addLinkAction, &QAction::triggered, this, &MainWindow::onAddLink);
     connectedActions_.append(addLinkAction);
 
-    addCommand(QStringLiteral("Clear completed"),
-               QStringLiteral("edit-clear-all"), "clearCompleted");
+    addCommand(QStringLiteral("Clear completed"), QStringLiteral("clear"),
+               "clearCompleted");
     toolbar->addSeparator();
 
-    QAction* prefsAction =
-        toolbar->addAction(QIcon::fromTheme(QStringLiteral("preferences-system")),
-                           QStringLiteral("Preferences…"));
+    QAction* prefsAction = toolbar->addAction(icon(QStringLiteral("preferences")),
+                                              QStringLiteral("Preferences…"));
     connect(prefsAction, &QAction::triggered, this, &MainWindow::onOpenPreferences);
     connectedActions_.append(prefsAction);
 }
