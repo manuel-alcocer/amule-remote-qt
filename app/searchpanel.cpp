@@ -67,8 +67,10 @@ SearchPanel::SearchPanel(QWidget* parent) : QWidget(parent) {
     table_->setAlternatingRowColors(true);
     table_->setSortingEnabled(true);
     table_->verticalHeader()->setVisible(false);
-    table_->horizontalHeader()->setSectionResizeMode(SearchResultModel::Name,
-                                                     QHeaderView::Stretch);
+    auto* header = table_->horizontalHeader();
+    header->setSectionResizeMode(SearchResultModel::Name, QHeaderView::Stretch);
+    header->setSectionResizeMode(SearchResultModel::Size, QHeaderView::ResizeToContents);
+    header->setSectionResizeMode(SearchResultModel::Sources, QHeaderView::ResizeToContents);
     layout->addWidget(table_, 1);
 
     connect(searchBtn_, &QPushButton::clicked, this, &SearchPanel::onSearchOrStop);
