@@ -13,7 +13,6 @@
 #include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
-#include <QToolBar>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QCloseEvent>
@@ -64,7 +63,6 @@ RemoteConfEc readRemoteConfEc() {
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     buildUi();
-    buildToolBar();
     wireWorker();
     loadSettings();
     onStatusChanged(ConnStatus::Disconnected, QString());
@@ -183,7 +181,28 @@ void MainWindow::buildUi() {
     split->addWidget(sourceTable);
     split->setStretchFactor(0, 3);
     split->setStretchFactor(1, 1);
-    tabs->addTab(split, QStringLiteral("Transfers"));
+
+    // Transfer-wide actions (moved here from the former toolbar).
+    auto* transfersTab = new QWidget;
+    auto* transfersLayout = new QVBoxLayout(transfersTab);
+    transfersLayout->setContentsMargins(0, 0, 0, 0);
+    auto* transfersButtons = new QHBoxLayout;
+    auto* addLinkBtn = new QPushButton(QIcon(QStringLiteral(":/icons/add.svg")),
+                                       QStringLiteral("Add ed2k link…"));
+    auto* clearBtn = new QPushButton(QIcon(QStringLiteral(":/icons/clear.svg")),
+                                     QStringLiteral("Clear completed"));
+    transfersButtons->addWidget(addLinkBtn);
+    transfersButtons->addWidget(clearBtn);
+    transfersButtons->addStretch(1);
+    transfersLayout->addLayout(transfersButtons);
+    transfersLayout->addWidget(split);
+    tabs->addTab(transfersTab, QStringLiteral("Transfers"));
+
+    connect(addLinkBtn, &QPushButton::clicked, this, &MainWindow::onAddLink);
+    connect(clearBtn, &QPushButton::clicked, this, [this] {
+        QMetaObject::invokeMethod(worker(), "clearCompleted", Qt::QueuedConnection);
+    });
+    connectedWidgets_ << addLinkBtn << clearBtn;
 
     // Search tab.
     searchPanel_ = new SearchPanel;
@@ -314,32 +333,6 @@ void MainWindow::buildUi() {
             &MainWindow::onTransferSelectionChanged);
     connect(serverTable_, &QTableView::customContextMenuRequested, this,
             &MainWindow::onServerContextMenu);
-}
-
-void MainWindow::buildToolBar() {
-    auto* toolbar = addToolBar(QStringLiteral("Network"));
-    toolbar->setObjectName(QStringLiteral("networkToolbar"));
-    toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-    toolbar->setMovable(false);
-
-    // Bundled SVG icons (resources.qrc), rendered via Qt6::Svg so they look the
-    // same on every platform regardless of the desktop icon theme.
-    const auto icon = [](const QString& name) {
-        return QIcon(QStringLiteral(":/icons/%1.svg").arg(name));
-    };
-    // Transfer-wide actions. The network/server controls live on the Servers
-    // tab (see buildUi).
-    QAction* addLinkAction =
-        toolbar->addAction(icon(QStringLiteral("add")), QStringLiteral("Add ed2k link…"));
-    connect(addLinkAction, &QAction::triggered, this, &MainWindow::onAddLink);
-    connectedActions_.append(addLinkAction);
-
-    QAction* clearAction =
-        toolbar->addAction(icon(QStringLiteral("clear")), QStringLiteral("Clear completed"));
-    connect(clearAction, &QAction::triggered, this, [this] {
-        QMetaObject::invokeMethod(worker(), "clearCompleted", Qt::QueuedConnection);
-    });
-    connectedActions_.append(clearAction);
 }
 
 void MainWindow::onAddLink() {
@@ -529,8 +522,6 @@ void MainWindow::onStatusChanged(ConnStatus status, const QString& detail) {
                         : QStringLiteral("color:%1; font-weight:bold;").arg(color));
     connectBtn_->setEnabled(!connected && !connecting);
     disconnectBtn_->setEnabled(connected);
-    for (QAction* action : connectedActions_)
-        action->setEnabled(connected);
     for (QWidget* widget : connectedWidgets_)
         widget->setEnabled(connected);
     if (!connected) {
