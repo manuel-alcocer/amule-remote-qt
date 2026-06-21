@@ -152,7 +152,8 @@ QTableView* SearchPanel::makeResultTab(const QString& label) {
     proxy->setSearchFilter(currentFilter());
     view->setModel(proxy);
     view->setSelectionBehavior(QAbstractItemView::SelectRows);
-    view->setSelectionMode(QAbstractItemView::SingleSelection);
+    // Extended selection: click = single, Ctrl+click = toggle, Shift+click = range.
+    view->setSelectionMode(QAbstractItemView::ExtendedSelection);
     view->setEditTriggers(QAbstractItemView::NoEditTriggers);
     view->setAlternatingRowColors(true);
     view->setSortingEnabled(true);
@@ -210,11 +211,19 @@ void SearchPanel::setSearching(bool searching) {
 }
 
 void SearchPanel::onDownload() {
-    if (currentResultView() != liveView_)
+    QTableView* view = currentResultView();
+    if (view != liveView_)
         return; // only the live tab's results are in the daemon
-    const Hash16 hash = selectedHash();
-    if (hash != Hash16{})
-        emit downloadRequested(hash);
+    auto* proxy = proxyFor(view);
+    auto* model = modelFor(view);
+    if (!proxy || !model)
+        return;
+    // Download every selected result.
+    for (const QModelIndex& idx : view->selectionModel()->selectedRows()) {
+        const Hash16 hash = model->hashAt(proxy->mapToSource(idx).row());
+        if (hash != Hash16{})
+            emit downloadRequested(hash);
+    }
 }
 
 void SearchPanel::onTabClose(int index) {

@@ -147,7 +147,8 @@ void MainWindow::buildUi() {
     table_ = new QTableView;
     table_->setModel(downloadProxy_);
     table_->setSelectionBehavior(QAbstractItemView::SelectRows);
-    table_->setSelectionMode(QAbstractItemView::SingleSelection);
+    // Extended selection: click = single, Ctrl+click = toggle, Shift+click = range.
+    table_->setSelectionMode(QAbstractItemView::ExtendedSelection);
     table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     table_->setAlternatingRowColors(true);
     table_->setSortingEnabled(true);
@@ -443,7 +444,16 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
     const QModelIndex index = table_->indexAt(pos);
     if (!index.isValid())
         return;
-    const Hash16 hash = model_->hashAt(downloadProxy_->mapToSource(index).row());
+
+    // Act on every selected download; fall back to the row under the cursor.
+    QList<Hash16> hashes;
+    const QModelIndexList selected = table_->selectionModel()->selectedRows();
+    if (selected.isEmpty()) {
+        hashes.append(model_->hashAt(downloadProxy_->mapToSource(index).row()));
+    } else {
+        for (const QModelIndex& i : selected)
+            hashes.append(model_->hashAt(downloadProxy_->mapToSource(i).row()));
+    }
 
     QMenu menu(this);
     QAction* pause = menu.addAction(QStringLiteral("Pause"));
@@ -463,7 +473,7 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
     if (!chosen)
         return;
 
-    // Priority submenu: send setPriority and return.
+    // Priority submenu: send setPriority for each and return.
     quint8 priority = 0;
     bool isPriority = true;
     if (chosen == prioLow)
@@ -477,8 +487,9 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
     else
         isPriority = false;
     if (isPriority) {
-        QMetaObject::invokeMethod(worker(), "setPriority", Qt::QueuedConnection,
-                                  Q_ARG(amule::Hash16, hash), Q_ARG(quint8, priority));
+        for (const Hash16& hash : hashes)
+            QMetaObject::invokeMethod(worker(), "setPriority", Qt::QueuedConnection,
+                                      Q_ARG(amule::Hash16, hash), Q_ARG(quint8, priority));
         return;
     }
 
@@ -492,14 +503,15 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
     else if (chosen == remove) {
         if (QMessageBox::question(
                 this, QStringLiteral("Delete download"),
-                QStringLiteral("Delete this download from the queue?")) !=
+                QStringLiteral("Delete %1 download(s) from the queue?").arg(hashes.size())) !=
             QMessageBox::Yes)
             return;
         slot = "remove";
     }
     if (slot)
-        QMetaObject::invokeMethod(worker(), slot, Qt::QueuedConnection,
-                                  Q_ARG(amule::Hash16, hash));
+        for (const Hash16& hash : hashes)
+            QMetaObject::invokeMethod(worker(), slot, Qt::QueuedConnection,
+                                      Q_ARG(amule::Hash16, hash));
 }
 
 void MainWindow::onStatusChanged(ConnStatus status, const QString& detail) {
