@@ -1,0 +1,62 @@
+# Quality gate on the integration branch: build, run the offline tests, and run
+# Cppcheck + clang-tidy. A merge to devel must pass this before a release branch
+# is cut (see docs/adr/0007-defer-ci-release-pipelines.md).
+name: static-analysis
+
+on:
+  push:
+    branches: [devel]
+  pull_request:
+    branches: [devel]
+
+# Public repo: everything here is intentionally open and reproducible.
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-24.04
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++-14 ninja-build cppcheck clang-tidy-18
+          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy \
+            /usr/bin/clang-tidy-18 100
+
+      # ADR-0002: build against a recent Qt 6 (the apt package is too old).
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: 6.8.1
+          modules: qtsvg
+          cache: true
+
+      - name: Configure
+        env:
+          CC: gcc-14
+          CXX: g++-14
+        run: cmake -S . -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Tests
+        # The live tests (eclive, worker's live case) self-skip without a daemon.
+        run: ctest --test-dir build --output-on-failure
+
+      - name: clang-tidy
+        run: |
+          run-clang-tidy-18 -p build -quiet 'core/.*\.cpp$' 'app/.*\.cpp$'
+
+      - name: cppcheck
+        run: |
+          cppcheck --project=build/compile_commands.json \
+            --enable=warning --inline-suppr --library=qt --std=c++23 \
+            --suppressions-list=.cppcheck-suppressions \
+            -i "$GITHUB_WORKSPACE/build" \
+            --error-exitcode=1

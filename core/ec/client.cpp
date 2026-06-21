@@ -15,10 +15,6 @@ namespace {
 // Blocking timeout for connect/read/write, matching the prototype's 20 s.
 constexpr int kTimeoutMs = 20'000;
 
-// Client identification advertised in the auth request.
-const QString kClientName = QStringLiteral("amule-remote-qt");
-const QString kClientVersion = QStringLiteral("0.1.0");
-
 std::unexpected<EcError> ioError(QString message) {
     return std::unexpected(EcError{EcError::Kind::Io, std::move(message)});
 }
@@ -91,8 +87,8 @@ std::expected<void, EcError> EcClient::authenticate(const QString& passMd5Hex) {
     // Step 1: AUTH_REQ. We advertise neither CAN_ZLIB nor CAN_UTF8_NUMBERS so
     // every reply uses plain big-endian numbers and no compression.
     Packet req(EC_OP_AUTH_REQ,
-               {Tag::string(EC_TAG_CLIENT_NAME, kClientName),
-                Tag::string(EC_TAG_CLIENT_VERSION, kClientVersion),
+               {Tag::string(EC_TAG_CLIENT_NAME, QStringLiteral("amule-remote-qt")),
+                Tag::string(EC_TAG_CLIENT_VERSION, QStringLiteral("0.1.0")),
                 Tag::integer(EC_TAG_PROTOCOL_VERSION, EC_CURRENT_PROTOCOL_VERSION),
                 Tag::empty(EC_TAG_CAN_LARGE_TAG_COUNT),
                 Tag::empty(EC_TAG_CAN_PARTIAL_UPDATE)});

@@ -40,7 +40,6 @@ QString globToRegex(const QString& glob) {
 }
 
 void SearchResultFilterProxy::setSearchFilter(const SearchFilter& filter) {
-    beginFilterChange();
     filter_ = filter;
     const QString text = filter_.text.trimmed();
 
@@ -51,7 +50,7 @@ void SearchResultFilterProxy::setSearchFilter(const SearchFilter& filter) {
             expr, QRegularExpression::CaseInsensitiveOption);
         usePattern_ = pattern_.isValid();
     }
-    endFilterChange(QSortFilterProxyModel::Direction::Rows);
+    invalidate(); // re-run filter (and sort) — available since Qt 6.0
 }
 
 void SearchResultFilterProxy::setAnchored(const QSet<int>& sourceRows, bool enabled) {
