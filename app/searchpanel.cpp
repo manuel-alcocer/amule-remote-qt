@@ -2,12 +2,15 @@
 
 #include <algorithm>
 
+#include <QAction>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QLabel>
+#include <QMenu>
+#include <QMessageBox>
 #include <QLineEdit>
 #include <QProgressBar>
 #include <QPushButton>
@@ -98,6 +101,8 @@ QWidget* SearchPanel::buildControls() {
     filterRow->addWidget(minSrcSpin_);
     filterRow->addWidget(new QLabel(QStringLiteral("max")));
     filterRow->addWidget(maxSrcSpin_);
+    anchorCheck_ = new QCheckBox(QStringLiteral("anchor selected"));
+    filterRow->addWidget(anchorCheck_);
     outer->addLayout(filterRow);
 
     // Saved-search row.
@@ -139,6 +144,9 @@ QWidget* SearchPanel::buildControls() {
     connect(saveBtn_, &QPushButton::clicked, this, &SearchPanel::onSaveSearch);
     connect(deleteBtn_, &QPushButton::clicked, this, &SearchPanel::onDeleteSaved);
 
+    connect(anchorCheck_, &QCheckBox::toggled, this,
+            [this] { updateAnchor(currentResultView()); });
+
     return container;
 }
 
@@ -164,10 +172,19 @@ QTableView* SearchPanel::makeResultTab(const QString& label) {
     header->setSectionResizeMode(SearchResultModel::Size, QHeaderView::ResizeToContents);
     header->setSectionResizeMode(SearchResultModel::Sources, QHeaderView::ResizeToContents);
     view->setProperty("baseLabel", label);
+    // Default sort by source count (descending) so anchoring has an order to
+    // work against and results start most-available-first.
+    view->sortByColumn(SearchResultModel::Sources, Qt::DescendingOrder);
+    view->setContextMenuPolicy(Qt::CustomContextMenu);
 
     connect(view->selectionModel(), &QItemSelectionModel::selectionChanged, this,
-            [this] { updateDownloadEnabled(); });
+            [this, view] {
+                updateDownloadEnabled();
+                updateAnchor(view);
+            });
     connect(view, &QTableView::doubleClicked, this, &SearchPanel::onDownload);
+    connect(view, &QTableView::customContextMenuRequested, this,
+            [this, view](const QPoint& pos) { onResultContextMenu(view, pos); });
 
     const int index = tabs_->addTab(view, label);
     tabs_->setCurrentIndex(index);
@@ -226,6 +243,62 @@ void SearchPanel::onDownload() {
     }
 }
 
+void SearchPanel::onResultContextMenu(QTableView* view, const QPoint& pos) {
+    const QModelIndex idx = view->indexAt(pos);
+    if (!idx.isValid())
+        return;
+    auto* proxy = proxyFor(view);
+    auto* model = modelFor(view);
+    if (!proxy || !model)
+        return;
+    const SearchResult clicked = model->resultAt(proxy->mapToSource(idx).row());
+    const bool live = (view == liveView_);
+
+    QMenu menu(this);
+    QAction* detailAct = menu.addAction(QStringLiteral("Detail"));
+    QAction* downloadAct = menu.addAction(QStringLiteral("Download"));
+    QAction* downloadSelAct = menu.addAction(QStringLiteral("Download selected"));
+    // Only the live tab's results are in the daemon and downloadable.
+    downloadAct->setEnabled(live);
+    downloadSelAct->setEnabled(live && view->selectionModel()->hasSelection());
+
+    QAction* chosen = menu.exec(view->viewport()->mapToGlobal(pos));
+    if (chosen == detailAct) {
+        showResultDetail(clicked);
+    } else if (chosen == downloadAct) {
+        if (clicked.hash != Hash16{})
+            emit downloadRequested(clicked.hash);
+    } else if (chosen == downloadSelAct) {
+        onDownload(); // downloads every selected row (live tab)
+    }
+}
+
+void SearchPanel::showResultDetail(const SearchResult& result) {
+    const QByteArray hashBytes(reinterpret_cast<const char*>(result.hash.data()), 16);
+    const QString text =
+        QStringLiteral("Name:\n%1\n\nSize: %2\nSources: %3 (complete %4)\nHash: %5")
+            .arg(result.name, humanBytes(result.size),
+                 QString::number(result.sourceCount),
+                 QString::number(result.completeSourceCount),
+                 QString::fromLatin1(hashBytes.toHex()));
+    QMessageBox::information(this, QStringLiteral("Result detail"), text);
+}
+
+void SearchPanel::updateAnchor(QTableView* view) {
+    if (!view)
+        return;
+    auto* proxy = proxyFor(view);
+    if (!proxy)
+        return;
+    const bool enabled = anchorCheck_->isChecked();
+    QSet<int> rows;
+    if (enabled) {
+        for (const QModelIndex& idx : view->selectionModel()->selectedRows())
+            rows.insert(proxy->mapToSource(idx).row());
+    }
+    proxy->setAnchored(rows, enabled);
+}
+
 void SearchPanel::onTabClose(int index) {
     QWidget* page = tabs_->widget(index);
     if (page == liveView_) {
@@ -241,6 +314,7 @@ void SearchPanel::onTabClose(int index) {
 void SearchPanel::onCurrentTabChanged(int) {
     applyFilterToCurrent();
     updateDownloadEnabled();
+    updateAnchor(currentResultView());
 }
 
 void SearchPanel::onFilterChanged() {

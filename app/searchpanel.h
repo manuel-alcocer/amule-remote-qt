@@ -55,6 +55,9 @@ private slots:
 private:
     QWidget* buildControls();
     QTableView* makeResultTab(const QString& label);
+    void onResultContextMenu(QTableView* view, const QPoint& pos);
+    void showResultDetail(const amule::SearchResult& result);
+    void updateAnchor(QTableView* view);
     [[nodiscard]] SearchFilter currentFilter() const;
     [[nodiscard]] QTableView* currentResultView() const;
     [[nodiscard]] SearchResultFilterProxy* proxyFor(QTableView* view) const;
@@ -75,6 +78,7 @@ private:
     QCheckBox* globCheck_ = nullptr;
     QCheckBox* regexCheck_ = nullptr;
     QCheckBox* onlyCompleteCheck_ = nullptr;
+    QCheckBox* anchorCheck_ = nullptr;
     QSpinBox* minSrcSpin_ = nullptr;
     QSpinBox* maxSrcSpin_ = nullptr;
 
