@@ -21,6 +21,8 @@ add_executable(amule-remote-qt
     sourcetablemodel.cpp
     preferencesdialog.h
     preferencesdialog.cpp
+    speedgraph.h
+    speedgraph.cpp
 )
 
 target_link_libraries(amule-remote-qt PRIVATE ec-core Qt6::Widgets)

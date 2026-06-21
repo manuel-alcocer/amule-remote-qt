@@ -26,6 +26,7 @@ class SearchPanel;
 class ServerTableModel;
 class SharedFileModel;
 class SourceTableModel;
+class SpeedGraph;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -67,6 +68,7 @@ private:
     QPushButton* connectBtn_ = nullptr;
     QPushButton* disconnectBtn_ = nullptr;
 
+    SpeedGraph* speedGraph_ = nullptr;
     QTableView* table_ = nullptr;
     SearchPanel* searchPanel_ = nullptr;
     QTableView* serverTable_ = nullptr;

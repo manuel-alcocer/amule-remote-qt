@@ -32,6 +32,7 @@
 #include "servertablemodel.h"
 #include "sharedfilemodel.h"
 #include "sourcetablemodel.h"
+#include "speedgraph.h"
 
 namespace amule {
 namespace {
@@ -94,6 +95,10 @@ void MainWindow::buildUi() {
     bar->addWidget(connectBtn_);
     bar->addWidget(disconnectBtn_);
     layout->addLayout(bar);
+
+    // Speed graph.
+    speedGraph_ = new SpeedGraph;
+    layout->addWidget(speedGraph_);
 
     // Download table.
     model_ = new DownloadTableModel(this);
@@ -381,10 +386,12 @@ void MainWindow::onStatusChanged(ConnStatus status, const QString& detail) {
     if (!connected) {
         netLabel_->clear();
         statsLabel_->clear();
+        speedGraph_->clear();
     }
 }
 
 void MainWindow::onStats(Stats stats) {
+    speedGraph_->addSample(stats.dlSpeed, stats.ulSpeed);
     statsLabel_->setText(QStringLiteral("↓ %1   ↑ %2   ed2k %3 users%4")
                              .arg(humanRate(stats.dlSpeed), humanRate(stats.ulSpeed),
                                   humanCount(stats.ed2kUsers),
