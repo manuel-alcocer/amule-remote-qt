@@ -54,6 +54,27 @@ void SearchResultFilterProxy::setSearchFilter(const SearchFilter& filter) {
     endFilterChange(QSortFilterProxyModel::Direction::Rows);
 }
 
+void SearchResultFilterProxy::setAnchored(const QSet<int>& sourceRows, bool enabled) {
+    anchored_ = sourceRows;
+    anchorEnabled_ = enabled;
+    invalidate(); // re-run the sort so anchored rows move
+}
+
+bool SearchResultFilterProxy::lessThan(const QModelIndex& left,
+                                       const QModelIndex& right) const {
+    if (anchorEnabled_) {
+        const bool leftAnchored = anchored_.contains(left.row());
+        const bool rightAnchored = anchored_.contains(right.row());
+        if (leftAnchored != rightAnchored) {
+            // Keep anchored rows on top no matter the sort direction (the view
+            // reverses lessThan for a descending sort, so counteract that).
+            const bool leftFirst = leftAnchored;
+            return sortOrder() == Qt::AscendingOrder ? leftFirst : !leftFirst;
+        }
+    }
+    return QSortFilterProxyModel::lessThan(left, right);
+}
+
 bool SearchResultFilterProxy::filterAcceptsRow(int sourceRow,
                                                const QModelIndex& sourceParent) const {
     Q_UNUSED(sourceParent);

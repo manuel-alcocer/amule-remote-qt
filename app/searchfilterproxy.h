@@ -5,6 +5,7 @@
 #pragma once
 
 #include <QRegularExpression>
+#include <QSet>
 #include <QSortFilterProxyModel>
 #include <QString>
 #include <QtTypes>
@@ -32,14 +33,22 @@ public:
 
     void setSearchFilter(const SearchFilter& filter);
 
+    // When enabled, the given source rows float to the top (anchored) regardless
+    // of the active column sort.
+    void setAnchored(const QSet<int>& sourceRows, bool enabled);
+
 protected:
     bool filterAcceptsRow(int sourceRow,
                           const QModelIndex& sourceParent) const override;
+    bool lessThan(const QModelIndex& left, const QModelIndex& right) const override;
 
 private:
     SearchFilter filter_;
     QRegularExpression pattern_;
     bool usePattern_ = false;
+
+    QSet<int> anchored_;
+    bool anchorEnabled_ = false;
 };
 
 } // namespace amule
