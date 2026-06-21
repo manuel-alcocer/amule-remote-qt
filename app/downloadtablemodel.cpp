@@ -81,6 +81,12 @@ Hash16 DownloadTableModel::hashAt(int row) const {
     return downloads_.at(row).hash;
 }
 
+quint32 DownloadTableModel::ecidAt(int row) const {
+    if (row < 0 || row >= downloads_.size())
+        return 0;
+    return downloads_.at(row).ecid;
+}
+
 void DownloadTableModel::setDownloads(const QList<Download>& downloads) {
     beginResetModel();
     downloads_ = downloads;

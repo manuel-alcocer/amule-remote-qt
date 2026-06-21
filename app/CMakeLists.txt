@@ -13,6 +13,12 @@ add_executable(amule-remote-qt
     searchresultmodel.cpp
     searchpanel.h
     searchpanel.cpp
+    servertablemodel.h
+    servertablemodel.cpp
+    sharedfilemodel.h
+    sharedfilemodel.cpp
+    sourcetablemodel.h
+    sourcetablemodel.cpp
 )
 
 target_link_libraries(amule-remote-qt PRIVATE ec-core Qt6::Widgets)

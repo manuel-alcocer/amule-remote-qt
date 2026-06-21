@@ -11,7 +11,9 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSettings>
+#include <QSortFilterProxyModel>
 #include <QSpinBox>
+#include <QSplitter>
 #include <QStatusBar>
 #include <QTableView>
 #include <QTabWidget>
@@ -21,6 +23,9 @@
 #include "ec/client.h"
 #include "progressbardelegate.h"
 #include "searchpanel.h"
+#include "servertablemodel.h"
+#include "sharedfilemodel.h"
+#include "sourcetablemodel.h"
 
 namespace amule {
 
@@ -79,16 +84,58 @@ void MainWindow::buildUi() {
     for (int c = DownloadTableModel::Status; c < DownloadTableModel::ColumnCount; ++c)
         header->setSectionResizeMode(c, QHeaderView::ResizeToContents);
 
-    // Tabs: Transfers + Search.
-    auto* tabs = new QTabWidget;
-    auto* transfers = new QWidget;
-    auto* transfersLayout = new QVBoxLayout(transfers);
-    transfersLayout->setContentsMargins(0, 0, 0, 0);
-    transfersLayout->addWidget(table_);
-    tabs->addTab(transfers, QStringLiteral("Transfers"));
+    const auto configureTable = [](QTableView* view, int stretchColumn) {
+        view->setSelectionBehavior(QAbstractItemView::SelectRows);
+        view->setSelectionMode(QAbstractItemView::SingleSelection);
+        view->setEditTriggers(QAbstractItemView::NoEditTriggers);
+        view->setAlternatingRowColors(true);
+        view->verticalHeader()->setVisible(false);
+        view->horizontalHeader()->setSectionResizeMode(stretchColumn,
+                                                        QHeaderView::Stretch);
+    };
 
+    auto* tabs = new QTabWidget;
+
+    // Transfers tab: the download queue on top, sources for the selected
+    // download below.
+    sourceModel_ = new SourceTableModel(this);
+    auto* sourceTable = new QTableView;
+    sourceTable->setModel(sourceModel_);
+    configureTable(sourceTable, SourceTableModel::Client);
+
+    auto* split = new QSplitter(Qt::Vertical);
+    split->addWidget(table_);
+    split->addWidget(sourceTable);
+    split->setStretchFactor(0, 3);
+    split->setStretchFactor(1, 1);
+    tabs->addTab(split, QStringLiteral("Transfers"));
+
+    // Search tab.
     searchPanel_ = new SearchPanel;
     tabs->addTab(searchPanel_, QStringLiteral("Search"));
+
+    // Servers tab.
+    serverModel_ = new ServerTableModel(this);
+    auto* serverProxy = new QSortFilterProxyModel(this);
+    serverProxy->setSourceModel(serverModel_);
+    serverProxy->setSortRole(Qt::UserRole);
+    serverTable_ = new QTableView;
+    serverTable_->setModel(serverProxy);
+    configureTable(serverTable_, ServerTableModel::Name);
+    serverTable_->setSortingEnabled(true);
+    serverTable_->setContextMenuPolicy(Qt::CustomContextMenu);
+    tabs->addTab(serverTable_, QStringLiteral("Servers"));
+
+    // Shared tab.
+    sharedModel_ = new SharedFileModel(this);
+    auto* sharedProxy = new QSortFilterProxyModel(this);
+    sharedProxy->setSourceModel(sharedModel_);
+    sharedProxy->setSortRole(Qt::UserRole);
+    auto* sharedTable = new QTableView;
+    sharedTable->setModel(sharedProxy);
+    configureTable(sharedTable, SharedFileModel::Name);
+    sharedTable->setSortingEnabled(true);
+    tabs->addTab(sharedTable, QStringLiteral("Shared"));
 
     layout->addWidget(tabs, 1);
 
@@ -115,6 +162,10 @@ void MainWindow::buildUi() {
     connect(passEdit_, &QLineEdit::returnPressed, this, &MainWindow::onConnectClicked);
     connect(table_, &QTableView::customContextMenuRequested, this,
             &MainWindow::onTableContextMenu);
+    connect(table_->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+            &MainWindow::onTransferSelectionChanged);
+    connect(serverTable_, &QTableView::customContextMenuRequested, this,
+            &MainWindow::onServerContextMenu);
 }
 
 void MainWindow::wireWorker() {
@@ -141,6 +192,38 @@ void MainWindow::wireWorker() {
         QMetaObject::invokeMethod(worker(), "downloadResult", Qt::QueuedConnection,
                                   Q_ARG(amule::Hash16, hash));
     });
+
+    // Servers, shared files and sources.
+    connect(w, &EcWorker::serversUpdated, serverModel_, &ServerTableModel::setServers);
+    connect(w, &EcWorker::sharedFilesUpdated, sharedModel_, &SharedFileModel::setFiles);
+    connect(w, &EcWorker::sourcesUpdated, sourceModel_, &SourceTableModel::setSources);
+}
+
+void MainWindow::onTransferSelectionChanged() {
+    const QModelIndex index = table_->selectionModel()->currentIndex();
+    sourceModel_->setFileEcid(index.isValid() ? model_->ecidAt(index.row()) : 0);
+}
+
+void MainWindow::onServerContextMenu(const QPoint& pos) {
+    const QModelIndex index = serverTable_->indexAt(pos);
+    if (!index.isValid())
+        return;
+    auto* proxy = qobject_cast<QSortFilterProxyModel*>(serverTable_->model());
+    const int row = proxy ? proxy->mapToSource(index).row() : index.row();
+    const ServerIp ip = serverModel_->ipAt(row);
+    const quint16 port = serverModel_->portAt(row);
+
+    QMenu menu(this);
+    QAction* connectAct = menu.addAction(QStringLiteral("Connect"));
+    QAction* removeAct = menu.addAction(QStringLiteral("Remove"));
+
+    QAction* chosen = menu.exec(serverTable_->viewport()->mapToGlobal(pos));
+    if (chosen == connectAct)
+        QMetaObject::invokeMethod(worker(), "serverConnect", Qt::QueuedConnection,
+                                  Q_ARG(amule::ServerIp, ip), Q_ARG(quint16, port));
+    else if (chosen == removeAct)
+        QMetaObject::invokeMethod(worker(), "serverRemove", Qt::QueuedConnection,
+                                  Q_ARG(amule::ServerIp, ip), Q_ARG(quint16, port));
 }
 
 void MainWindow::onConnectClicked() {
