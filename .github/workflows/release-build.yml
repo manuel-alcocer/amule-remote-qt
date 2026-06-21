@@ -28,7 +28,6 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: 6.8.1
-          modules: qtsvg
           cache: true
 
       - name: Configure (Release)
