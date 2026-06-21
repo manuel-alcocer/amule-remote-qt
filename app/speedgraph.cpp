@@ -120,7 +120,9 @@ void SpeedGraph::paintEvent(QPaintEvent*) {
 
     const qsizetype first = std::max<qsizetype>(0, n - cols);
     for (qsizetype i = first; i < n; ++i) {
-        const int c = static_cast<int>(i - first);
+        // Right-align: the newest sample sits at the rightmost column and older
+        // ones scroll left.
+        const int c = cols - static_cast<int>(n - i);
         painter.setBrush(kGreen);
         painter.drawEllipse(QPointF(cx(c), cy(rowFor(down_.at(i)))), kRadius, kRadius);
         if (up_.at(i) > 0) {
