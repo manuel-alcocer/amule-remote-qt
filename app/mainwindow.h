@@ -57,7 +57,6 @@ private slots:
 
 private:
     void buildUi();
-    void buildToolBar();
     void wireWorker();
     void loadSettings();
     void saveSettings();
@@ -87,8 +86,7 @@ private:
     QLabel* netLabel_ = nullptr;
     QLabel* statsLabel_ = nullptr;
 
-    // Toolbar actions / widgets that require an active connection.
-    QList<QAction*> connectedActions_;
+    // Widgets that require an active connection.
     QList<QWidget*> connectedWidgets_;
 
     // Latest daemon preferences snapshot, used to seed the preferences dialog.
