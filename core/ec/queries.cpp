@@ -210,33 +210,124 @@ std::expected<std::vector<SharedFile>, EcError> fetchSharedFiles(EcClient& clien
 }
 
 std::expected<DaemonPrefs, EcError> fetchPrefs(EcClient& client) {
-    auto resp = client.exchange(Packet(
-        EC_OP_GET_PREFERENCES,
-        {Tag::integer(EC_TAG_SELECT_PREFS, EC_PREFS_CONNECTIONS | EC_PREFS_DIRECTORIES)}));
+    // Most boolean prefs are reported as the mere presence of an empty tag.
+    const auto flag = [](const Tag* parent, quint16 tag) {
+        return parent->child(tag) != nullptr;
+    };
+    // ...but the Directories category reports them as 0/1 integers instead.
+    const auto intFlag = [](const Tag* parent, quint16 tag) {
+        return parent->childInt(tag).value_or(0) != 0;
+    };
+
+    const quint64 selectAll =
+        EC_PREFS_GENERAL | EC_PREFS_CONNECTIONS | EC_PREFS_MESSAGEFILTER |
+        EC_PREFS_REMOTECONTROLS | EC_PREFS_ONLINESIG | EC_PREFS_SERVERS |
+        EC_PREFS_FILES | EC_PREFS_DIRECTORIES | EC_PREFS_SECURITY |
+        EC_PREFS_CORETWEAKS | EC_PREFS_KADEMLIA;
+    auto resp = client.exchange(
+        Packet(EC_OP_GET_PREFERENCES, {Tag::integer(EC_TAG_SELECT_PREFS, selectAll)}));
     if (!resp)
         return std::unexpected(resp.error());
 
     DaemonPrefs p;
     p.loaded = true;
-    if (const Tag* conn = resp->tag(EC_TAG_PREFS_CONNECTIONS)) {
-        p.maxDownload = conn->childInt(EC_TAG_CONN_MAX_DL).value_or(0);
-        p.maxUpload = conn->childInt(EC_TAG_CONN_MAX_UL).value_or(0);
-        p.slotAllocation = conn->childInt(EC_TAG_CONN_SLOT_ALLOCATION).value_or(0);
-        p.tcpPort = conn->childInt(EC_TAG_CONN_TCP_PORT).value_or(0);
-        p.udpPort = conn->childInt(EC_TAG_CONN_UDP_PORT).value_or(0);
-        p.maxSources = conn->childInt(EC_TAG_CONN_MAX_FILE_SOURCES).value_or(0);
-        p.maxConnections = conn->childInt(EC_TAG_CONN_MAX_CONN).value_or(0);
-        // Booleans are sent as the mere presence of an empty tag.
-        p.networkEd2k = conn->child(EC_TAG_NETWORK_ED2K) != nullptr;
-        p.networkKad = conn->child(EC_TAG_NETWORK_KADEMLIA) != nullptr;
-        p.autoconnect = conn->child(EC_TAG_CONN_AUTOCONNECT) != nullptr;
-        p.reconnect = conn->child(EC_TAG_CONN_RECONNECT) != nullptr;
+
+    if (const Tag* g = resp->tag(EC_TAG_PREFS_GENERAL)) {
+        p.nick = g->childString(EC_TAG_USER_NICK).value_or(QString());
+        p.checkNewVersion = intFlag(g, EC_TAG_GENERAL_CHECK_NEW_VERSION);
     }
-    if (const Tag* dir = resp->tag(EC_TAG_PREFS_DIRECTORIES)) {
-        p.incomingDir = dir->childString(EC_TAG_DIRECTORIES_INCOMING).value_or(QString());
-        p.tempDir = dir->childString(EC_TAG_DIRECTORIES_TEMP).value_or(QString());
-        p.shareHidden = dir->childInt(EC_TAG_DIRECTORIES_SHARE_HIDDEN).value_or(0) != 0;
-        p.autoRescan = dir->childInt(EC_TAG_DIRECTORIES_AUTO_RESCAN).value_or(0) != 0;
+    if (const Tag* c = resp->tag(EC_TAG_PREFS_CONNECTIONS)) {
+        p.downloadCapacity = c->childInt(EC_TAG_CONN_DL_CAP).value_or(0);
+        p.uploadCapacity = c->childInt(EC_TAG_CONN_UL_CAP).value_or(0);
+        p.maxDownload = c->childInt(EC_TAG_CONN_MAX_DL).value_or(0);
+        p.maxUpload = c->childInt(EC_TAG_CONN_MAX_UL).value_or(0);
+        p.slotAllocation = c->childInt(EC_TAG_CONN_SLOT_ALLOCATION).value_or(0);
+        p.tcpPort = c->childInt(EC_TAG_CONN_TCP_PORT).value_or(0);
+        p.udpPort = c->childInt(EC_TAG_CONN_UDP_PORT).value_or(0);
+        p.udpDisable = flag(c, EC_TAG_CONN_UDP_DISABLE);
+        p.maxSources = c->childInt(EC_TAG_CONN_MAX_FILE_SOURCES).value_or(0);
+        p.maxConnections = c->childInt(EC_TAG_CONN_MAX_CONN).value_or(0);
+        p.networkEd2k = flag(c, EC_TAG_NETWORK_ED2K);
+        p.networkKad = flag(c, EC_TAG_NETWORK_KADEMLIA);
+        p.autoconnect = flag(c, EC_TAG_CONN_AUTOCONNECT);
+        p.reconnect = flag(c, EC_TAG_CONN_RECONNECT);
+    }
+    if (const Tag* f = resp->tag(EC_TAG_PREFS_FILES)) {
+        p.ichEnabled = flag(f, EC_TAG_FILES_ICH_ENABLED);
+        p.aichTrust = flag(f, EC_TAG_FILES_AICH_TRUST);
+        p.addNewPaused = flag(f, EC_TAG_FILES_NEW_PAUSED);
+        p.addNewAutoDlPrio = flag(f, EC_TAG_FILES_NEW_AUTO_DL_PRIO);
+        p.previewPrio = flag(f, EC_TAG_FILES_PREVIEW_PRIO);
+        p.addNewAutoUlPrio = flag(f, EC_TAG_FILES_NEW_AUTO_UL_PRIO);
+        p.ulFullChunks = flag(f, EC_TAG_FILES_UL_FULL_CHUNKS);
+        p.startNextPaused = flag(f, EC_TAG_FILES_START_NEXT_PAUSED);
+        p.resumeSameCategory = flag(f, EC_TAG_FILES_RESUME_SAME_CAT);
+        p.saveSources = flag(f, EC_TAG_FILES_SAVE_SOURCES);
+        p.extractMetadata = flag(f, EC_TAG_FILES_EXTRACT_METADATA);
+        p.allocFullSize = flag(f, EC_TAG_FILES_ALLOC_FULL_SIZE);
+        p.checkFreeSpace = flag(f, EC_TAG_FILES_CHECK_FREE_SPACE);
+        p.minFreeSpaceMB = f->childInt(EC_TAG_FILES_MIN_FREE_SPACE).value_or(0);
+    }
+    if (const Tag* d = resp->tag(EC_TAG_PREFS_DIRECTORIES)) {
+        p.incomingDir = d->childString(EC_TAG_DIRECTORIES_INCOMING).value_or(QString());
+        p.tempDir = d->childString(EC_TAG_DIRECTORIES_TEMP).value_or(QString());
+        p.shareHidden = intFlag(d, EC_TAG_DIRECTORIES_SHARE_HIDDEN);
+        p.autoRescan = intFlag(d, EC_TAG_DIRECTORIES_AUTO_RESCAN);
+    }
+    if (const Tag* s = resp->tag(EC_TAG_PREFS_SERVERS)) {
+        p.removeDeadServers = flag(s, EC_TAG_SERVERS_REMOVE_DEAD);
+        p.deadServerRetries = s->childInt(EC_TAG_SERVERS_DEAD_SERVER_RETRIES).value_or(0);
+        p.serverAutoUpdate = flag(s, EC_TAG_SERVERS_AUTO_UPDATE);
+        p.updateFromServer = flag(s, EC_TAG_SERVERS_ADD_FROM_SERVER);
+        p.updateFromClient = flag(s, EC_TAG_SERVERS_ADD_FROM_CLIENT);
+        p.useScoreSystem = flag(s, EC_TAG_SERVERS_USE_SCORE_SYSTEM);
+        p.smartIdCheck = flag(s, EC_TAG_SERVERS_SMART_ID_CHECK);
+        p.safeServerConnect = flag(s, EC_TAG_SERVERS_SAFE_SERVER_CONNECT);
+        p.autoConnectStaticOnly = flag(s, EC_TAG_SERVERS_AUTOCONN_STATIC_ONLY);
+        p.manualHighPrio = flag(s, EC_TAG_SERVERS_MANUAL_HIGH_PRIO);
+        p.serverListUrl = s->childString(EC_TAG_SERVERS_UPDATE_URL).value_or(QString());
+    }
+    if (const Tag* sec = resp->tag(EC_TAG_PREFS_SECURITY)) {
+        p.canSeeShares = sec->childInt(EC_TAG_SECURITY_CAN_SEE_SHARES).value_or(0);
+        p.filterClients = flag(sec, EC_TAG_IPFILTER_CLIENTS);
+        p.filterServers = flag(sec, EC_TAG_IPFILTER_SERVERS);
+        p.ipfilterAutoUpdate = flag(sec, EC_TAG_IPFILTER_AUTO_UPDATE);
+        p.ipfilterUrl = sec->childString(EC_TAG_IPFILTER_UPDATE_URL).value_or(QString());
+        p.ipfilterLevel = sec->childInt(EC_TAG_IPFILTER_LEVEL).value_or(0);
+        p.filterLan = flag(sec, EC_TAG_IPFILTER_FILTER_LAN);
+        p.useSecIdent = flag(sec, EC_TAG_SECURITY_USE_SECIDENT);
+        p.obfuscationSupported = flag(sec, EC_TAG_SECURITY_OBFUSCATION_SUPPORTED);
+        p.obfuscationRequested = flag(sec, EC_TAG_SECURITY_OBFUSCATION_REQUESTED);
+        p.obfuscationRequired = flag(sec, EC_TAG_SECURITY_OBFUSCATION_REQUIRED);
+    }
+    if (const Tag* m = resp->tag(EC_TAG_PREFS_MESSAGEFILTER)) {
+        p.msgFilterEnabled = flag(m, EC_TAG_MSGFILTER_ENABLED);
+        p.msgFilterAll = flag(m, EC_TAG_MSGFILTER_ALL);
+        p.msgFilterFriends = flag(m, EC_TAG_MSGFILTER_FRIENDS);
+        p.msgFilterSecure = flag(m, EC_TAG_MSGFILTER_SECURE);
+        p.msgFilterByKeyword = flag(m, EC_TAG_MSGFILTER_BY_KEYWORD);
+        p.msgKeywords = m->childString(EC_TAG_MSGFILTER_KEYWORDS).value_or(QString());
+    }
+    if (const Tag* w = resp->tag(EC_TAG_PREFS_REMOTECTRL)) {
+        p.webserverAutorun = flag(w, EC_TAG_WEBSERVER_AUTORUN);
+        p.webserverPort = w->childInt(EC_TAG_WEBSERVER_PORT).value_or(0);
+        p.webserverGuest = flag(w, EC_TAG_WEBSERVER_GUEST);
+        p.webserverGzip = flag(w, EC_TAG_WEBSERVER_USEGZIP);
+        p.webserverRefresh = w->childInt(EC_TAG_WEBSERVER_REFRESH).value_or(0);
+        p.webserverTemplate = w->childString(EC_TAG_WEBSERVER_TEMPLATE).value_or(QString());
+    }
+    if (const Tag* o = resp->tag(EC_TAG_PREFS_ONLINESIG)) {
+        p.onlineSignatureEnabled = flag(o, EC_TAG_ONLINESIG_ENABLED);
+    }
+    if (const Tag* t = resp->tag(EC_TAG_PREFS_CORETWEAKS)) {
+        p.maxConnPer5Sec = t->childInt(EC_TAG_CORETW_MAX_CONN_PER_FIVE).value_or(0);
+        p.verbose = flag(t, EC_TAG_CORETW_VERBOSE);
+        p.fileBufferSize = t->childInt(EC_TAG_CORETW_FILEBUFFER).value_or(0);
+        p.uploadQueueSize = t->childInt(EC_TAG_CORETW_UL_QUEUE).value_or(0);
+        p.serverKeepaliveTimeout = t->childInt(EC_TAG_CORETW_SRV_KEEPALIVE_TIMEOUT).value_or(0);
+    }
+    if (const Tag* k = resp->tag(EC_TAG_PREFS_KADEMLIA)) {
+        p.kadNodesUrl = k->childString(EC_TAG_KADEMLIA_UPDATE_URL).value_or(QString());
     }
     return p;
 }
@@ -428,7 +519,14 @@ std::expected<void, EcError> reloadSharedFiles(EcClient& client) {
 }
 
 std::expected<void, EcError> setPrefs(EcClient& client, const DaemonPrefs& p) {
+    // The daemon reads booleans by value, so write every flag as a 0/1 int.
     const auto b = [](bool v) -> quint64 { return v ? 1 : 0; };
+
+    Tag general = Tag::empty(EC_TAG_PREFS_GENERAL);
+    general.withChildren({
+        Tag::string(EC_TAG_USER_NICK, p.nick),
+        Tag::integer(EC_TAG_GENERAL_CHECK_NEW_VERSION, b(p.checkNewVersion)),
+    });
 
     Tag conn = Tag::empty(EC_TAG_PREFS_CONNECTIONS);
     conn.withChildren({
@@ -437,12 +535,31 @@ std::expected<void, EcError> setPrefs(EcClient& client, const DaemonPrefs& p) {
         Tag::integer(EC_TAG_CONN_SLOT_ALLOCATION, p.slotAllocation),
         Tag::integer(EC_TAG_CONN_TCP_PORT, p.tcpPort),
         Tag::integer(EC_TAG_CONN_UDP_PORT, p.udpPort),
+        Tag::integer(EC_TAG_CONN_UDP_DISABLE, b(p.udpDisable)),
         Tag::integer(EC_TAG_CONN_MAX_FILE_SOURCES, p.maxSources),
         Tag::integer(EC_TAG_CONN_MAX_CONN, p.maxConnections),
         Tag::integer(EC_TAG_CONN_AUTOCONNECT, b(p.autoconnect)),
         Tag::integer(EC_TAG_CONN_RECONNECT, b(p.reconnect)),
         Tag::integer(EC_TAG_NETWORK_ED2K, b(p.networkEd2k)),
         Tag::integer(EC_TAG_NETWORK_KADEMLIA, b(p.networkKad)),
+    });
+
+    Tag files = Tag::empty(EC_TAG_PREFS_FILES);
+    files.withChildren({
+        Tag::integer(EC_TAG_FILES_ICH_ENABLED, b(p.ichEnabled)),
+        Tag::integer(EC_TAG_FILES_AICH_TRUST, b(p.aichTrust)),
+        Tag::integer(EC_TAG_FILES_NEW_PAUSED, b(p.addNewPaused)),
+        Tag::integer(EC_TAG_FILES_NEW_AUTO_DL_PRIO, b(p.addNewAutoDlPrio)),
+        Tag::integer(EC_TAG_FILES_PREVIEW_PRIO, b(p.previewPrio)),
+        Tag::integer(EC_TAG_FILES_NEW_AUTO_UL_PRIO, b(p.addNewAutoUlPrio)),
+        Tag::integer(EC_TAG_FILES_UL_FULL_CHUNKS, b(p.ulFullChunks)),
+        Tag::integer(EC_TAG_FILES_START_NEXT_PAUSED, b(p.startNextPaused)),
+        Tag::integer(EC_TAG_FILES_RESUME_SAME_CAT, b(p.resumeSameCategory)),
+        Tag::integer(EC_TAG_FILES_SAVE_SOURCES, b(p.saveSources)),
+        Tag::integer(EC_TAG_FILES_EXTRACT_METADATA, b(p.extractMetadata)),
+        Tag::integer(EC_TAG_FILES_ALLOC_FULL_SIZE, b(p.allocFullSize)),
+        Tag::integer(EC_TAG_FILES_CHECK_FREE_SPACE, b(p.checkFreeSpace)),
+        Tag::integer(EC_TAG_FILES_MIN_FREE_SPACE, p.minFreeSpaceMB),
     });
 
     Tag dir = Tag::empty(EC_TAG_PREFS_DIRECTORIES);
@@ -453,7 +570,76 @@ std::expected<void, EcError> setPrefs(EcClient& client, const DaemonPrefs& p) {
         Tag::integer(EC_TAG_DIRECTORIES_AUTO_RESCAN, b(p.autoRescan)),
     });
 
-    return sendDiscard(client, Packet(EC_OP_SET_PREFERENCES, {conn, dir}));
+    Tag servers = Tag::empty(EC_TAG_PREFS_SERVERS);
+    servers.withChildren({
+        Tag::integer(EC_TAG_SERVERS_REMOVE_DEAD, b(p.removeDeadServers)),
+        Tag::integer(EC_TAG_SERVERS_DEAD_SERVER_RETRIES, p.deadServerRetries),
+        Tag::integer(EC_TAG_SERVERS_AUTO_UPDATE, b(p.serverAutoUpdate)),
+        Tag::integer(EC_TAG_SERVERS_ADD_FROM_SERVER, b(p.updateFromServer)),
+        Tag::integer(EC_TAG_SERVERS_ADD_FROM_CLIENT, b(p.updateFromClient)),
+        Tag::integer(EC_TAG_SERVERS_USE_SCORE_SYSTEM, b(p.useScoreSystem)),
+        Tag::integer(EC_TAG_SERVERS_SMART_ID_CHECK, b(p.smartIdCheck)),
+        Tag::integer(EC_TAG_SERVERS_SAFE_SERVER_CONNECT, b(p.safeServerConnect)),
+        Tag::integer(EC_TAG_SERVERS_AUTOCONN_STATIC_ONLY, b(p.autoConnectStaticOnly)),
+        Tag::integer(EC_TAG_SERVERS_MANUAL_HIGH_PRIO, b(p.manualHighPrio)),
+    });
+
+    Tag security = Tag::empty(EC_TAG_PREFS_SECURITY);
+    security.withChildren({
+        Tag::integer(EC_TAG_SECURITY_CAN_SEE_SHARES, p.canSeeShares),
+        Tag::integer(EC_TAG_IPFILTER_CLIENTS, b(p.filterClients)),
+        Tag::integer(EC_TAG_IPFILTER_SERVERS, b(p.filterServers)),
+        Tag::integer(EC_TAG_IPFILTER_AUTO_UPDATE, b(p.ipfilterAutoUpdate)),
+        Tag::string(EC_TAG_IPFILTER_UPDATE_URL, p.ipfilterUrl),
+        Tag::integer(EC_TAG_IPFILTER_LEVEL, p.ipfilterLevel),
+        Tag::integer(EC_TAG_IPFILTER_FILTER_LAN, b(p.filterLan)),
+        Tag::integer(EC_TAG_SECURITY_USE_SECIDENT, b(p.useSecIdent)),
+        Tag::integer(EC_TAG_SECURITY_OBFUSCATION_REQUESTED, b(p.obfuscationRequested)),
+        Tag::integer(EC_TAG_SECURITY_OBFUSCATION_REQUIRED, b(p.obfuscationRequired)),
+    });
+
+    Tag msg = Tag::empty(EC_TAG_PREFS_MESSAGEFILTER);
+    msg.withChildren({
+        Tag::integer(EC_TAG_MSGFILTER_ENABLED, b(p.msgFilterEnabled)),
+        Tag::integer(EC_TAG_MSGFILTER_ALL, b(p.msgFilterAll)),
+        Tag::integer(EC_TAG_MSGFILTER_FRIENDS, b(p.msgFilterFriends)),
+        Tag::integer(EC_TAG_MSGFILTER_SECURE, b(p.msgFilterSecure)),
+        Tag::integer(EC_TAG_MSGFILTER_BY_KEYWORD, b(p.msgFilterByKeyword)),
+        Tag::string(EC_TAG_MSGFILTER_KEYWORDS, p.msgKeywords),
+    });
+
+    Tag web = Tag::empty(EC_TAG_PREFS_REMOTECTRL);
+    web.withChildren({
+        Tag::integer(EC_TAG_WEBSERVER_AUTORUN, b(p.webserverAutorun)),
+        Tag::integer(EC_TAG_WEBSERVER_PORT, p.webserverPort),
+        Tag::integer(EC_TAG_WEBSERVER_GUEST, b(p.webserverGuest)),
+        Tag::integer(EC_TAG_WEBSERVER_USEGZIP, b(p.webserverGzip)),
+        Tag::integer(EC_TAG_WEBSERVER_REFRESH, p.webserverRefresh),
+        Tag::string(EC_TAG_WEBSERVER_TEMPLATE, p.webserverTemplate),
+    });
+
+    Tag onlinesig = Tag::empty(EC_TAG_PREFS_ONLINESIG);
+    onlinesig.withChildren({
+        Tag::integer(EC_TAG_ONLINESIG_ENABLED, b(p.onlineSignatureEnabled)),
+    });
+
+    Tag tweaks = Tag::empty(EC_TAG_PREFS_CORETWEAKS);
+    tweaks.withChildren({
+        Tag::integer(EC_TAG_CORETW_MAX_CONN_PER_FIVE, p.maxConnPer5Sec),
+        Tag::integer(EC_TAG_CORETW_VERBOSE, b(p.verbose)),
+        Tag::integer(EC_TAG_CORETW_FILEBUFFER, p.fileBufferSize),
+        Tag::integer(EC_TAG_CORETW_UL_QUEUE, p.uploadQueueSize),
+        Tag::integer(EC_TAG_CORETW_SRV_KEEPALIVE_TIMEOUT, p.serverKeepaliveTimeout),
+    });
+
+    Tag kad = Tag::empty(EC_TAG_PREFS_KADEMLIA);
+    kad.withChildren({
+        Tag::string(EC_TAG_KADEMLIA_UPDATE_URL, p.kadNodesUrl),
+    });
+
+    return sendDiscard(client, Packet(EC_OP_SET_PREFERENCES,
+                                      {general, conn, files, dir, servers, security,
+                                       msg, web, onlinesig, tweaks, kad}));
 }
 
 } // namespace amule

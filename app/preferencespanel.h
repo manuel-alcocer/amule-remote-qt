@@ -1,16 +1,20 @@
-// Preferences tab: the daemon's Connection + Directories preferences as
-// subtabs, with Apply / Reload actions. Populated from the worker's prefsUpdated
-// snapshot; emits applyRequested with the edited values.
+// Preferences tab: every daemon preference amuled exposes over EC, grouped into
+// subtabs (General, Connection, Files, Directories, Servers, Security, Messages,
+// Remote, Online Sig, Advanced, Kademlia), with Apply / Reload. Widgets are
+// bound to DaemonPrefs members via pointer-to-member to keep the wiring compact.
 
 #pragma once
 
+#include <QList>
 #include <QWidget>
 
 #include "model/model.h"
 
 class QCheckBox;
+class QComboBox;
 class QLineEdit;
 class QSpinBox;
+class QWidget;
 
 namespace amule {
 
@@ -28,25 +32,43 @@ signals:
     void reloadRequested();
 
 private:
+    struct BoolBinding {
+        QCheckBox* widget;
+        bool DaemonPrefs::* field;
+    };
+    struct IntBinding {
+        QSpinBox* widget;
+        quint64 DaemonPrefs::* field;
+    };
+    struct StringBinding {
+        QLineEdit* widget;
+        QString DaemonPrefs::* field;
+    };
+
     [[nodiscard]] DaemonPrefs collect() const;
 
-    DaemonPrefs current_; // base for collect(), preserves untouched fields
+    // Widget factories that also register the binding.
+    QCheckBox* boolBox(const QString& text, bool DaemonPrefs::* field);
+    QSpinBox* intBox(int min, int max, quint64 DaemonPrefs::* field,
+                     const QString& suffix = {}, bool unlimitedAtZero = false);
+    QLineEdit* strEdit(QString DaemonPrefs::* field);
 
-    QSpinBox* maxDownload_ = nullptr;
-    QSpinBox* maxUpload_ = nullptr;
-    QSpinBox* slotAllocation_ = nullptr;
-    QSpinBox* tcpPort_ = nullptr;
-    QSpinBox* udpPort_ = nullptr;
-    QSpinBox* maxSources_ = nullptr;
-    QSpinBox* maxConnections_ = nullptr;
-    QCheckBox* networkEd2k_ = nullptr;
-    QCheckBox* networkKad_ = nullptr;
-    QCheckBox* autoconnect_ = nullptr;
-    QCheckBox* reconnect_ = nullptr;
-    QLineEdit* incomingDir_ = nullptr;
-    QLineEdit* tempDir_ = nullptr;
-    QCheckBox* shareHidden_ = nullptr;
-    QCheckBox* autoRescan_ = nullptr;
+    QWidget* buildGeneralTab();
+    QWidget* buildConnectionTab();
+    QWidget* buildFilesTab();
+    QWidget* buildDirectoriesTab();
+    QWidget* buildServersTab();
+    QWidget* buildSecurityTab();
+    QWidget* buildMessagesTab();
+    QWidget* buildRemoteTab();
+    QWidget* buildAdvancedTab();
+
+    DaemonPrefs current_;
+    QList<BoolBinding> bools_;
+    QList<IntBinding> ints_;
+    QList<StringBinding> strings_;
+
+    QComboBox* canSeeShares_ = nullptr;
 };
 
 } // namespace amule

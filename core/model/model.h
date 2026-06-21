@@ -153,26 +153,107 @@ struct ConnState {
     bool kadConnected = false;
 };
 
-// A subset of the daemon's preferences (Connection + Directories).
+// The daemon's preferences, as exposed over EC (all categories amuled supports
+// remotely). Booleans are read from tag presence and written as 0/1 ints.
 struct DaemonPrefs {
     bool loaded = false;
+
+    // General.
+    QString nick;
+    bool checkNewVersion = false;
+
     // Connection.
+    quint64 downloadCapacity = 0; // kB/s line capacity (graph scale)
+    quint64 uploadCapacity = 0;
     quint64 maxDownload = 0; // kB/s, 0 = unlimited
     quint64 maxUpload = 0;
     quint64 slotAllocation = 0;
     quint64 tcpPort = 0;
     quint64 udpPort = 0;
+    bool udpDisable = false;
     quint64 maxSources = 0;
     quint64 maxConnections = 0;
     bool networkEd2k = false;
     bool networkKad = false;
     bool autoconnect = false;
     bool reconnect = false;
+
+    // Files.
+    bool ichEnabled = false;
+    bool aichTrust = false;
+    bool addNewPaused = false;
+    bool addNewAutoDlPrio = false;
+    bool previewPrio = false;
+    bool addNewAutoUlPrio = false;
+    bool ulFullChunks = false;
+    bool startNextPaused = false;
+    bool resumeSameCategory = false;
+    bool saveSources = false;
+    bool extractMetadata = false;
+    bool allocFullSize = false;
+    bool checkFreeSpace = false;
+    quint64 minFreeSpaceMB = 0;
+
     // Directories.
     QString incomingDir;
     QString tempDir;
     bool shareHidden = false;
     bool autoRescan = false;
+
+    // Servers.
+    bool removeDeadServers = false;
+    quint64 deadServerRetries = 0;
+    bool serverAutoUpdate = false;
+    bool updateFromServer = false;
+    bool updateFromClient = false;
+    bool useScoreSystem = false;
+    bool smartIdCheck = false;
+    bool safeServerConnect = false;
+    bool autoConnectStaticOnly = false;
+    bool manualHighPrio = false;
+    QString serverListUrl;
+
+    // Security.
+    quint64 canSeeShares = 0; // 0=all, 1=friends, 2=nobody
+    bool filterClients = false;
+    bool filterServers = false;
+    bool ipfilterAutoUpdate = false;
+    QString ipfilterUrl;
+    quint64 ipfilterLevel = 0;
+    bool filterLan = false;
+    bool useSecIdent = false;
+    bool obfuscationSupported = false; // capability (read-only)
+    bool obfuscationRequested = false;
+    bool obfuscationRequired = false;
+
+    // Message filter.
+    bool msgFilterEnabled = false;
+    bool msgFilterAll = false;
+    bool msgFilterFriends = false;
+    bool msgFilterSecure = false;
+    bool msgFilterByKeyword = false;
+    QString msgKeywords;
+
+    // Remote controls (webserver).
+    bool webserverAutorun = false;
+    quint64 webserverPort = 0;
+    bool webserverGuest = false;
+    bool webserverGzip = false;
+    quint64 webserverRefresh = 0;
+    QString webserverTemplate;
+
+    // Online signature.
+    bool onlineSignatureEnabled = false;
+
+    // Advanced (core tweaks).
+    quint64 maxConnPer5Sec = 0;
+    bool verbose = false;
+    quint64 fileBufferSize = 0;
+    quint64 uploadQueueSize = 0;
+    quint64 serverKeepaliveTimeout = 0;
+
+    // Kademlia.
+    QString kadNodesUrl;
 };
 
 // --- Human-readable formatting helpers -------------------------------------
