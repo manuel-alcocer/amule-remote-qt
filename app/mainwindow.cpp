@@ -16,9 +16,11 @@
 #include <QToolBar>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QCloseEvent>
 #include <QSettings>
 #include <QSortFilterProxyModel>
 #include <QSpinBox>
+#include <QStandardPaths>
 #include <QSplitter>
 #include <QStatusBar>
 #include <QTableView>
@@ -66,9 +68,23 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     wireWorker();
     loadSettings();
     onStatusChanged(ConnStatus::Disconnected, QString());
+
+    // Restore the persisted speed history (after the disconnected-state reset,
+    // which clears the graph).
+    const QString dataDir =
+        QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QDir().mkpath(dataDir);
+    speedHistoryPath_ = dataDir + QStringLiteral("/speed_history.dat");
+    speedGraph_->load(speedHistoryPath_);
 }
 
 MainWindow::~MainWindow() = default;
+
+void MainWindow::closeEvent(QCloseEvent* event) {
+    if (!speedHistoryPath_.isEmpty())
+        speedGraph_->save(speedHistoryPath_);
+    QMainWindow::closeEvent(event);
+}
 
 void MainWindow::buildUi() {
     auto* central = new QWidget(this);

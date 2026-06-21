@@ -2,8 +2,11 @@
 
 #include <algorithm>
 
+#include <QDataStream>
+#include <QFile>
 #include <QPainter>
 #include <QPainterPath>
+#include <QSaveFile>
 
 #include "model/model.h"
 
@@ -12,6 +15,7 @@ namespace amule {
 namespace {
 const QColor kDownColor(0x4c, 0xc0, 0x6a);
 const QColor kUpColor(0x4a, 0x90, 0xd9);
+constexpr quint32 kMagic = 0x53504731; // "SPG1"
 } // namespace
 
 SpeedGraph::SpeedGraph(QWidget* parent) : QWidget(parent) {
@@ -35,6 +39,34 @@ void SpeedGraph::addSample(quint64 downBytesPerSec, quint64 upBytesPerSec) {
 void SpeedGraph::clear() {
     down_.clear();
     up_.clear();
+    update();
+}
+
+void SpeedGraph::save(const QString& path) const {
+    QSaveFile file(path);
+    if (!file.open(QIODevice::WriteOnly))
+        return;
+    QDataStream out(&file);
+    out.setVersion(QDataStream::Qt_6_5);
+    out << kMagic << down_ << up_;
+    file.commit();
+}
+
+void SpeedGraph::load(const QString& path) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly))
+        return;
+    QDataStream in(&file);
+    in.setVersion(QDataStream::Qt_6_5);
+    quint32 magic = 0;
+    in >> magic;
+    if (magic != kMagic)
+        return;
+    in >> down_ >> up_;
+    while (down_.size() > kMaxSamples)
+        down_.removeFirst();
+    while (up_.size() > kMaxSamples)
+        up_.removeFirst();
     update();
 }
 

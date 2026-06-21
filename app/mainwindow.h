@@ -35,6 +35,9 @@ public:
     explicit MainWindow(QWidget* parent = nullptr);
     ~MainWindow() override;
 
+protected:
+    void closeEvent(QCloseEvent* event) override;
+
 private slots:
     void onConnectClicked();
     void onDisconnectClicked();
@@ -88,6 +91,9 @@ private:
 
     // Latest daemon preferences snapshot, used to seed the preferences dialog.
     DaemonPrefs lastPrefs_;
+
+    // Path of the persisted speed-graph history.
+    QString speedHistoryPath_;
 };
 
 } // namespace amule

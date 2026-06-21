@@ -19,6 +19,11 @@ public:
 
     [[nodiscard]] QSize sizeHint() const override;
 
+    // Persist / restore the in-memory sample buffers so the graph resumes after
+    // a restart. Best-effort: I/O failures are ignored silently.
+    void save(const QString& path) const;
+    void load(const QString& path);
+
 public slots:
     void addSample(quint64 downBytesPerSec, quint64 upBytesPerSec);
     void clear();
