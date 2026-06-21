@@ -1,9 +1,10 @@
-// Dialog to view and edit the daemon's Connection + Directories preferences.
-// Seeded from a DaemonPrefs snapshot; prefs() returns the edited values.
+// Preferences tab: the daemon's Connection + Directories preferences as
+// subtabs, with Apply / Reload actions. Populated from the worker's prefsUpdated
+// snapshot; emits applyRequested with the edited values.
 
 #pragma once
 
-#include <QDialog>
+#include <QWidget>
 
 #include "model/model.h"
 
@@ -13,16 +14,23 @@ class QSpinBox;
 
 namespace amule {
 
-class PreferencesDialog : public QDialog {
+class PreferencesPanel : public QWidget {
     Q_OBJECT
 
 public:
-    explicit PreferencesDialog(const DaemonPrefs& prefs, QWidget* parent = nullptr);
+    explicit PreferencesPanel(QWidget* parent = nullptr);
 
-    [[nodiscard]] DaemonPrefs prefs() const;
+public slots:
+    void setPrefs(amule::DaemonPrefs prefs);
+
+signals:
+    void applyRequested(amule::DaemonPrefs prefs);
+    void reloadRequested();
 
 private:
-    DaemonPrefs initial_;
+    [[nodiscard]] DaemonPrefs collect() const;
+
+    DaemonPrefs current_; // base for collect(), preserves untouched fields
 
     QSpinBox* maxDownload_ = nullptr;
     QSpinBox* maxUpload_ = nullptr;

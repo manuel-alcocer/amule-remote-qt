@@ -31,7 +31,7 @@
 #include "downloadtablemodel.h"
 #include "ec/client.h"
 #include "ec/codes.h"
-#include "preferencesdialog.h"
+#include "preferencespanel.h"
 #include "progressbardelegate.h"
 #include "searchpanel.h"
 #include "servertablemodel.h"
@@ -225,6 +225,11 @@ void MainWindow::buildUi() {
     sharedTable->setSortingEnabled(true);
     tabs->addTab(sharedTable, QStringLiteral("Shared"));
 
+    // Preferences tab (Connection + Directories subtabs).
+    preferencesPanel_ = new PreferencesPanel;
+    tabs->addTab(preferencesPanel_, QStringLiteral("Preferences"));
+    connectedWidgets_ << preferencesPanel_;
+
     layout->addWidget(tabs, 1);
 
     setCentralWidget(central);
@@ -300,12 +305,6 @@ void MainWindow::buildToolBar() {
 
     addCommand(QStringLiteral("Clear completed"), QStringLiteral("clear"),
                "clearCompleted");
-    toolbar->addSeparator();
-
-    QAction* prefsAction = toolbar->addAction(icon(QStringLiteral("preferences")),
-                                              QStringLiteral("Preferences…"));
-    connect(prefsAction, &QAction::triggered, this, &MainWindow::onOpenPreferences);
-    connectedActions_.append(prefsAction);
 }
 
 void MainWindow::onAddLink() {
@@ -324,7 +323,15 @@ void MainWindow::wireWorker() {
     connect(w, &EcWorker::statusChanged, this, &MainWindow::onStatusChanged);
     connect(w, &EcWorker::statsUpdated, this, &MainWindow::onStats);
     connect(w, &EcWorker::connStateUpdated, this, &MainWindow::onConnState);
-    connect(w, &EcWorker::prefsUpdated, this, &MainWindow::onPrefs);
+    connect(w, &EcWorker::prefsUpdated, preferencesPanel_, &PreferencesPanel::setPrefs);
+    connect(preferencesPanel_, &PreferencesPanel::applyRequested, this,
+            [this](DaemonPrefs prefs) {
+                QMetaObject::invokeMethod(worker(), "applyPrefs", Qt::QueuedConnection,
+                                          Q_ARG(amule::DaemonPrefs, prefs));
+            });
+    connect(preferencesPanel_, &PreferencesPanel::reloadRequested, this, [this] {
+        QMetaObject::invokeMethod(worker(), "fetchPrefs", Qt::QueuedConnection);
+    });
     connect(w, &EcWorker::logMessage, this, &MainWindow::onLog);
     connect(w, &EcWorker::downloadsUpdated, model_, &DownloadTableModel::setDownloads);
 
@@ -532,18 +539,6 @@ void MainWindow::onUpdateServers() {
     if (ok && !url.trimmed().isEmpty())
         QMetaObject::invokeMethod(worker(), "serverUpdateFromUrl",
                                   Qt::QueuedConnection, Q_ARG(QString, url.trimmed()));
-}
-
-void MainWindow::onPrefs(DaemonPrefs prefs) {
-    lastPrefs_ = std::move(prefs);
-}
-
-void MainWindow::onOpenPreferences() {
-    PreferencesDialog dialog(lastPrefs_, this);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-    QMetaObject::invokeMethod(worker(), "applyPrefs", Qt::QueuedConnection,
-                              Q_ARG(amule::DaemonPrefs, dialog.prefs()));
 }
 
 void MainWindow::onLog(const QString& message) {

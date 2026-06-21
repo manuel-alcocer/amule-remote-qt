@@ -19,8 +19,8 @@ add_executable(amule-remote-qt
     sharedfilemodel.cpp
     sourcetablemodel.h
     sourcetablemodel.cpp
-    preferencesdialog.h
-    preferencesdialog.cpp
+    preferencespanel.h
+    preferencespanel.cpp
     speedgraph.h
     speedgraph.cpp
     addserverdialog.h
