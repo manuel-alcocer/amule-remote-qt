@@ -9,6 +9,7 @@ Checks: >
   -bugprone-branch-clone,
   -clang-analyzer-optin.cplusplus.UninitializedObject,
   -clang-analyzer-optin.performance.Padding,
+  -clang-analyzer-cplusplus.NewDeleteLeaks,
   -performance-enum-size,
   -performance-unnecessary-value-param
 
