@@ -43,6 +43,8 @@ struct Download {
     // The daemon's per-session EC id (the EC_TAG_PARTFILE container value),
     // used to match source clients to their download.
     quint32 ecid = 0;
+    // The part.met file number (NNN in NNN.part.met), 0 if unknown.
+    quint32 partMetId = 0;
     Hash16 hash{};
     QString name;
     quint64 sizeFull = 0;

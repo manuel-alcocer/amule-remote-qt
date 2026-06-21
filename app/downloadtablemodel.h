@@ -14,7 +14,7 @@ class DownloadTableModel : public QAbstractTableModel {
     Q_OBJECT
 
 public:
-    enum Column { Name, Status, Progress, Size, Speed, Sources, ColumnCount };
+    enum Column { PartNum, Name, Status, Progress, Size, Speed, Sources, ColumnCount };
 
     // Custom role carrying the integer percent (0..100) for the progress
     // delegate.

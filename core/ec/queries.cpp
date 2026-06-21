@@ -103,6 +103,8 @@ std::expected<std::vector<Download>, EcError> fetchDownloads(EcClient& client) {
             continue;
         Download d;
         d.ecid = static_cast<quint32>(tag.asInt().value_or(0));
+        d.partMetId =
+            static_cast<quint32>(tag.childInt(EC_TAG_PARTFILE_PARTMETID).value_or(0));
         if (const Tag* h = tag.child(EC_TAG_PARTFILE_HASH); h && h->asHash())
             d.hash = *h->asHash();
         else if (auto h2 = tag.asHash())

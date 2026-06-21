@@ -147,6 +147,8 @@ inline constexpr quint16 EC_TAG_STATS_ED2K_ID = 0x0213;
 // Partfile (download queue items).
 inline constexpr quint16 EC_TAG_PARTFILE = 0x0300;
 inline constexpr quint16 EC_TAG_PARTFILE_NAME = 0x0301;
+// The part.met file number (NNN in NNN.part.met).
+inline constexpr quint16 EC_TAG_PARTFILE_PARTMETID = 0x0302;
 inline constexpr quint16 EC_TAG_PARTFILE_SIZE_FULL = 0x0303;
 inline constexpr quint16 EC_TAG_PARTFILE_SIZE_XFER = 0x0304;
 inline constexpr quint16 EC_TAG_PARTFILE_SIZE_DONE = 0x0306;

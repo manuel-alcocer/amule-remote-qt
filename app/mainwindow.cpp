@@ -158,6 +158,7 @@ void MainWindow::buildUi() {
     table_->setContextMenuPolicy(Qt::CustomContextMenu);
     table_->setShowGrid(false);
     auto* header = table_->horizontalHeader();
+    header->setSectionResizeMode(DownloadTableModel::PartNum, QHeaderView::ResizeToContents);
     header->setSectionResizeMode(DownloadTableModel::Name, QHeaderView::Stretch);
     for (int c = DownloadTableModel::Status; c < DownloadTableModel::ColumnCount; ++c)
         header->setSectionResizeMode(c, QHeaderView::ResizeToContents);
