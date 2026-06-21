@@ -25,6 +25,7 @@
 #include <QTabWidget>
 #include <QVBoxLayout>
 
+#include "addserverdialog.h"
 #include "downloadtablemodel.h"
 #include "ec/client.h"
 #include "ec/codes.h"
@@ -164,7 +165,23 @@ void MainWindow::buildUi() {
     configureTable(serverTable_, ServerTableModel::Name);
     serverTable_->setSortingEnabled(true);
     serverTable_->setContextMenuPolicy(Qt::CustomContextMenu);
-    tabs->addTab(serverTable_, QStringLiteral("Servers"));
+
+    auto* serversTab = new QWidget;
+    auto* serversLayout = new QVBoxLayout(serversTab);
+    serversLayout->setContentsMargins(0, 0, 0, 0);
+    auto* serverButtons = new QHBoxLayout;
+    auto* addServerBtn = new QPushButton(QStringLiteral("Add server…"));
+    auto* updateServersBtn = new QPushButton(QStringLiteral("Update from URL…"));
+    serverButtons->addWidget(addServerBtn);
+    serverButtons->addWidget(updateServersBtn);
+    serverButtons->addStretch(1);
+    serversLayout->addLayout(serverButtons);
+    serversLayout->addWidget(serverTable_);
+    tabs->addTab(serversTab, QStringLiteral("Servers"));
+
+    connect(addServerBtn, &QPushButton::clicked, this, &MainWindow::onAddServer);
+    connect(updateServersBtn, &QPushButton::clicked, this, &MainWindow::onUpdateServers);
+    connectedWidgets_ << addServerBtn << updateServersBtn;
 
     // Shared tab.
     sharedModel_ = new SharedFileModel(this);
@@ -438,6 +455,8 @@ void MainWindow::onStatusChanged(ConnStatus status, const QString& detail) {
     disconnectBtn_->setEnabled(connected);
     for (QAction* action : connectedActions_)
         action->setEnabled(connected);
+    for (QWidget* widget : connectedWidgets_)
+        widget->setEnabled(connected);
     if (!connected) {
         netLabel_->clear();
         statsLabel_->clear();
@@ -461,6 +480,25 @@ void MainWindow::onConnState(ConnState conn) {
     const QString kad =
         conn.kadConnected ? QStringLiteral("Kad: on") : QStringLiteral("Kad: off");
     netLabel_->setText(QStringLiteral("%1   |   %2").arg(ed2k, kad));
+}
+
+void MainWindow::onAddServer() {
+    AddServerDialog dialog(this);
+    if (dialog.exec() != QDialog::Accepted || dialog.address().isEmpty())
+        return;
+    QMetaObject::invokeMethod(worker(), "serverAdd", Qt::QueuedConnection,
+                              Q_ARG(QString, dialog.serverName()),
+                              Q_ARG(QString, dialog.address()));
+}
+
+void MainWindow::onUpdateServers() {
+    bool ok = false;
+    const QString url = QInputDialog::getText(
+        this, QStringLiteral("Update server list"),
+        QStringLiteral("server.met URL:"), QLineEdit::Normal, QString(), &ok);
+    if (ok && !url.trimmed().isEmpty())
+        QMetaObject::invokeMethod(worker(), "serverUpdateFromUrl",
+                                  Qt::QueuedConnection, Q_ARG(QString, url.trimmed()));
 }
 
 void MainWindow::onPrefs(DaemonPrefs prefs) {

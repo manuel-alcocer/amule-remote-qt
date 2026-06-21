@@ -42,6 +42,8 @@ private slots:
     void onTransferSelectionChanged();
     void onServerContextMenu(const QPoint& pos);
     void onAddLink();
+    void onAddServer();
+    void onUpdateServers();
 
     void onStatusChanged(amule::ConnStatus status, const QString& detail);
     void onStats(amule::Stats stats);
@@ -80,8 +82,9 @@ private:
     QLabel* netLabel_ = nullptr;
     QLabel* statsLabel_ = nullptr;
 
-    // Toolbar actions that require an active connection.
+    // Toolbar actions / widgets that require an active connection.
     QList<QAction*> connectedActions_;
+    QList<QWidget*> connectedWidgets_;
 
     // Latest daemon preferences snapshot, used to seed the preferences dialog.
     DaemonPrefs lastPrefs_;
