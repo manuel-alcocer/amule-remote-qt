@@ -1,5 +1,7 @@
 #include "searchresultmodel.h"
 
+#include <algorithm>
+
 namespace amule {
 
 SearchResultModel::SearchResultModel(QObject* parent)
@@ -80,9 +82,20 @@ SearchResult SearchResultModel::resultAt(int row) const {
 }
 
 void SearchResultModel::setResults(const QList<SearchResult>& results) {
-    beginResetModel();
-    results_ = results;
-    endResetModel();
+    // Update in place when the same results are listed in the same order, so a
+    // live search refresh doesn't clear the table's selection.
+    const bool sameLayout =
+        results.size() == results_.size() &&
+        std::equal(results.cbegin(), results.cend(), results_.cbegin(),
+                   [](const SearchResult& a, const SearchResult& b) { return a.hash == b.hash; });
+    if (sameLayout && !results.isEmpty()) {
+        results_ = results;
+        emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1));
+    } else {
+        beginResetModel();
+        results_ = results;
+        endResetModel();
+    }
 }
 
 } // namespace amule

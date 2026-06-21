@@ -1,5 +1,7 @@
 #include "sharedfilemodel.h"
 
+#include <algorithm>
+
 namespace amule {
 
 SharedFileModel::SharedFileModel(QObject* parent) : QAbstractTableModel(parent) {}
@@ -82,9 +84,20 @@ QVariant SharedFileModel::headerData(int section, Qt::Orientation orientation,
 }
 
 void SharedFileModel::setFiles(const QList<SharedFile>& files) {
-    beginResetModel();
-    files_ = files;
-    endResetModel();
+    // Update in place when the same files are listed in the same order, so a
+    // periodic refresh doesn't clear the table's selection.
+    const bool sameLayout =
+        files.size() == files_.size() &&
+        std::equal(files.cbegin(), files.cend(), files_.cbegin(),
+                   [](const SharedFile& a, const SharedFile& b) { return a.hash == b.hash; });
+    if (sameLayout && !files.isEmpty()) {
+        files_ = files;
+        emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1));
+    } else {
+        beginResetModel();
+        files_ = files;
+        endResetModel();
+    }
 }
 
 } // namespace amule
