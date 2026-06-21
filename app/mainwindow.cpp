@@ -198,15 +198,47 @@ void MainWindow::buildUi() {
     auto* serversTab = new QWidget;
     auto* serversLayout = new QVBoxLayout(serversTab);
     serversLayout->setContentsMargins(0, 0, 0, 0);
-    auto* serverButtons = new QHBoxLayout;
+
+    // Network/server connection controls (moved here from the toolbar). Helper
+    // builds a command button bound to a worker slot, enabled only when
+    // connected.
+    const auto cmdButton = [this](const QString& text, const QString& iconName,
+                                  const char* slot) {
+        auto* button = new QPushButton(
+            QIcon(QStringLiteral(":/icons/%1.svg").arg(iconName)), text);
+        connect(button, &QPushButton::clicked, this, [this, slot] {
+            QMetaObject::invokeMethod(worker(), slot, Qt::QueuedConnection);
+        });
+        connectedWidgets_ << button;
+        return button;
+    };
+
+    auto* networkRow = new QHBoxLayout;
+    networkRow->addWidget(cmdButton(QStringLiteral("Connect networks"),
+                                    QStringLiteral("connect"), "connectNetworks"));
+    networkRow->addWidget(cmdButton(QStringLiteral("Disconnect networks"),
+                                    QStringLiteral("disconnect"), "disconnectNetworks"));
+    networkRow->addWidget(cmdButton(QStringLiteral("Start Kad"),
+                                    QStringLiteral("kad-start"), "startKad"));
+    networkRow->addWidget(cmdButton(QStringLiteral("Stop Kad"),
+                                    QStringLiteral("kad-stop"), "stopKad"));
+    networkRow->addStretch(1);
+    serversLayout->addLayout(networkRow);
+
+    auto* serverRow = new QHBoxLayout;
+    serverRow->addWidget(cmdButton(QStringLiteral("Connect server"),
+                                   QStringLiteral("server"), "serverConnectAny"));
+    serverRow->addWidget(cmdButton(QStringLiteral("Disconnect server"),
+                                   QStringLiteral("server-off"), "serverDisconnect"));
     auto* addServerBtn = new QPushButton(QIcon(QStringLiteral(":/icons/add.svg")),
                                          QStringLiteral("Add server…"));
     auto* updateServersBtn = new QPushButton(
         QIcon(QStringLiteral(":/icons/refresh.svg")), QStringLiteral("Update from URL…"));
-    serverButtons->addWidget(addServerBtn);
-    serverButtons->addWidget(updateServersBtn);
-    serverButtons->addStretch(1);
-    serversLayout->addLayout(serverButtons);
+    serverRow->addWidget(addServerBtn);
+    serverRow->addWidget(updateServersBtn);
+    serverRow->addStretch(1);
+    serversLayout->addLayout(serverRow);
+
     serversLayout->addWidget(serverTable_);
     tabs->addTab(serversTab, QStringLiteral("Servers"));
 
@@ -274,37 +306,19 @@ void MainWindow::buildToolBar() {
     const auto icon = [](const QString& name) {
         return QIcon(QStringLiteral(":/icons/%1.svg").arg(name));
     };
-    const auto addCommand = [&](const QString& text, const QString& iconName,
-                                const char* slot) {
-        QAction* action = toolbar->addAction(icon(iconName), text);
-        connect(action, &QAction::triggered, this, [this, slot] {
-            QMetaObject::invokeMethod(worker(), slot, Qt::QueuedConnection);
-        });
-        connectedActions_.append(action);
-        return action;
-    };
-
-    addCommand(QStringLiteral("Connect networks"), QStringLiteral("connect"),
-               "connectNetworks");
-    addCommand(QStringLiteral("Disconnect networks"), QStringLiteral("disconnect"),
-               "disconnectNetworks");
-    toolbar->addSeparator();
-    addCommand(QStringLiteral("Start Kad"), QStringLiteral("kad-start"), "startKad");
-    addCommand(QStringLiteral("Stop Kad"), QStringLiteral("kad-stop"), "stopKad");
-    toolbar->addSeparator();
-    addCommand(QStringLiteral("Connect server"), QStringLiteral("server"),
-               "serverConnectAny");
-    addCommand(QStringLiteral("Disconnect server"), QStringLiteral("server-off"),
-               "serverDisconnect");
-    toolbar->addSeparator();
-
+    // Transfer-wide actions. The network/server controls live on the Servers
+    // tab (see buildUi).
     QAction* addLinkAction =
         toolbar->addAction(icon(QStringLiteral("add")), QStringLiteral("Add ed2k link…"));
     connect(addLinkAction, &QAction::triggered, this, &MainWindow::onAddLink);
     connectedActions_.append(addLinkAction);
 
-    addCommand(QStringLiteral("Clear completed"), QStringLiteral("clear"),
-               "clearCompleted");
+    QAction* clearAction =
+        toolbar->addAction(icon(QStringLiteral("clear")), QStringLiteral("Clear completed"));
+    connect(clearAction, &QAction::triggered, this, [this] {
+        QMetaObject::invokeMethod(worker(), "clearCompleted", Qt::QueuedConnection);
+    });
+    connectedActions_.append(clearAction);
 }
 
 void MainWindow::onAddLink() {
