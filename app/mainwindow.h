@@ -21,6 +21,9 @@ namespace amule {
 
 class DownloadTableModel;
 class SearchPanel;
+class ServerTableModel;
+class SharedFileModel;
+class SourceTableModel;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -33,6 +36,8 @@ private slots:
     void onConnectClicked();
     void onDisconnectClicked();
     void onTableContextMenu(const QPoint& pos);
+    void onTransferSelectionChanged();
+    void onServerContextMenu(const QPoint& pos);
 
     void onStatusChanged(amule::ConnStatus status, const QString& detail);
     void onStats(amule::Stats stats);
@@ -58,6 +63,10 @@ private:
 
     QTableView* table_ = nullptr;
     SearchPanel* searchPanel_ = nullptr;
+    QTableView* serverTable_ = nullptr;
+    ServerTableModel* serverModel_ = nullptr;
+    SharedFileModel* sharedModel_ = nullptr;
+    SourceTableModel* sourceModel_ = nullptr;
     QPlainTextEdit* log_ = nullptr;
     QLabel* statusLabel_ = nullptr;
     QLabel* netLabel_ = nullptr;

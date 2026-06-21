@@ -31,6 +31,9 @@ public:
     // Hash of the download at `row`, for issuing commands.
     [[nodiscard]] Hash16 hashAt(int row) const;
 
+    // Daemon EC id of the download at `row`, for matching its source clients.
+    [[nodiscard]] quint32 ecidAt(int row) const;
+
 public slots:
     void setDownloads(const QList<amule::Download>& downloads);
 
