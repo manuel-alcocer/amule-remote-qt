@@ -11,6 +11,10 @@ add_executable(amule-remote-qt
     progressbardelegate.cpp
     searchresultmodel.h
     searchresultmodel.cpp
+    searchfilterproxy.h
+    searchfilterproxy.cpp
+    savedsearches.h
+    savedsearches.cpp
     searchpanel.h
     searchpanel.cpp
     servertablemodel.h
