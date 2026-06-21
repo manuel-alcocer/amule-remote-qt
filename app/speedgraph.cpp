@@ -115,8 +115,10 @@ void SpeedGraph::paintEvent(QPaintEvent*) {
     const qsizetype first = std::max<qsizetype>(0, n - cols);
     for (qsizetype i = first; i < n; ++i) {
         const int c = static_cast<int>(i - first);
-        const int downRows =
-            static_cast<int>(std::lround(double(down_.at(i)) / double(peak) * rows));
+        // Always light at least the bottom LED so every sampled interval shows a
+        // column (a 0 reading still lights the baseline).
+        const int downRows = std::max(
+            1, static_cast<int>(std::lround(double(down_.at(i)) / double(peak) * rows)));
         for (int r = 0; r < downRows && r < rows; ++r) {
             const double f = rows > 1 ? double(r) / double(rows - 1) : 0.0;
             painter.setBrush(f < 0.6 ? kGreen : (f < 0.85 ? kAmber : kRed));
