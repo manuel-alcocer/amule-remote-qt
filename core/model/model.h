@@ -8,6 +8,7 @@
 #include <utility>
 #include <vector>
 
+#include <QMetaType>
 #include <QString>
 #include <QtTypes>
 
@@ -187,3 +188,18 @@ QString humanCount(quint64 n);
 QString humanSizePair(quint64 done, quint64 full);
 
 } // namespace amule
+
+// Declared next to the types (not in worker.h) so any translation unit that uses
+// them in a metatype context — e.g. QList<Download> in the table model — sees
+// the declaration before the type is implicitly registered.
+Q_DECLARE_METATYPE(amule::Hash16)
+Q_DECLARE_METATYPE(amule::ServerIp)
+Q_DECLARE_METATYPE(amule::Stats)
+Q_DECLARE_METATYPE(amule::Download)
+Q_DECLARE_METATYPE(amule::ConnState)
+Q_DECLARE_METATYPE(amule::Server)
+Q_DECLARE_METATYPE(amule::SharedFile)
+Q_DECLARE_METATYPE(amule::SourceClient)
+Q_DECLARE_METATYPE(amule::SearchResult)
+Q_DECLARE_METATYPE(amule::SearchParams)
+Q_DECLARE_METATYPE(amule::DaemonPrefs)

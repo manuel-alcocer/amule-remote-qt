@@ -131,15 +131,6 @@ private:
 
 } // namespace amule
 
+// The model value types declare their metatypes in model.h (next to the types).
+// ConnStatus is worker-specific, so it is declared here.
 Q_DECLARE_METATYPE(amule::ConnStatus)
-Q_DECLARE_METATYPE(amule::Hash16)
-Q_DECLARE_METATYPE(amule::ServerIp)
-Q_DECLARE_METATYPE(amule::Stats)
-Q_DECLARE_METATYPE(amule::Download)
-Q_DECLARE_METATYPE(amule::ConnState)
-Q_DECLARE_METATYPE(amule::Server)
-Q_DECLARE_METATYPE(amule::SharedFile)
-Q_DECLARE_METATYPE(amule::SourceClient)
-Q_DECLARE_METATYPE(amule::SearchResult)
-Q_DECLARE_METATYPE(amule::SearchParams)
-Q_DECLARE_METATYPE(amule::DaemonPrefs)
