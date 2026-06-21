@@ -22,11 +22,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install toolchain
+        # clang-tidy 18 (distro) can't parse libstdc++ 14's C++23 headers, so
+        # install clang-tidy 20 from apt.llvm.org.
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++-14 ninja-build cppcheck clang-tidy-18
-          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy \
-            /usr/bin/clang-tidy-18 100
+          sudo apt-get install -y g++-14 ninja-build cppcheck \
+            wget gnupg lsb-release software-properties-common
+          wget -qO- https://apt.llvm.org/llvm.sh | sudo bash -s -- 20
+          sudo apt-get install -y clang-tidy-20
 
       # ADR-0002: build against a recent Qt 6 (the apt package is too old).
       - name: Install Qt
@@ -50,7 +53,7 @@ jobs:
 
       - name: clang-tidy
         run: |
-          run-clang-tidy-18 -p build -quiet 'core/.*\.cpp$' 'app/.*\.cpp$'
+          clang-tidy-20 -p build $(find core app -name '*.cpp')
 
       - name: cppcheck
         run: |
