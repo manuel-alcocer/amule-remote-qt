@@ -5,10 +5,12 @@
 
 #pragma once
 
+#include <QList>
 #include <QMainWindow>
 
 #include "ec/worker.h"
 
+class QAction;
 class QCheckBox;
 class QLabel;
 class QLineEdit;
@@ -38,6 +40,7 @@ private slots:
     void onTableContextMenu(const QPoint& pos);
     void onTransferSelectionChanged();
     void onServerContextMenu(const QPoint& pos);
+    void onAddLink();
 
     void onStatusChanged(amule::ConnStatus status, const QString& detail);
     void onStats(amule::Stats stats);
@@ -46,6 +49,7 @@ private slots:
 
 private:
     void buildUi();
+    void buildToolBar();
     void wireWorker();
     void loadSettings();
     void saveSettings();
@@ -71,6 +75,9 @@ private:
     QLabel* statusLabel_ = nullptr;
     QLabel* netLabel_ = nullptr;
     QLabel* statsLabel_ = nullptr;
+
+    // Toolbar actions that require an active connection.
+    QList<QAction*> connectedActions_;
 };
 
 } // namespace amule
