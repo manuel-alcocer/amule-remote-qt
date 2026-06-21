@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QFont>
 #include <QIcon>
 #include <QSettings>
 #include <QTimer>
@@ -12,6 +13,17 @@ int main(int argc, char* argv[]) {
     QApplication::setApplicationName(QStringLiteral("amule-remote-qt"));
     QApplication::setApplicationDisplayName(QStringLiteral("aMule Remote"));
     QApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/app.svg")));
+
+    // Nudge the default font up 2 points — bundled/AppImage runs often default to
+    // a small base font without the desktop's font settings.
+    {
+        QFont font = QApplication::font();
+        if (font.pointSizeF() > 0)
+            font.setPointSizeF(font.pointSizeF() + 2);
+        else
+            font.setPixelSize(font.pixelSize() + 3);
+        QApplication::setFont(font);
+    }
 
     // ADR-0006: settings persisted as INI under the platform config location.
     QSettings::setDefaultFormat(QSettings::IniFormat);
