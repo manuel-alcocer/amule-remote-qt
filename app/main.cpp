@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QIcon>
 #include <QSettings>
 #include <QTimer>
 
@@ -10,6 +11,7 @@ int main(int argc, char* argv[]) {
     QApplication::setOrganizationName(QStringLiteral("amule-remote-qt"));
     QApplication::setApplicationName(QStringLiteral("amule-remote-qt"));
     QApplication::setApplicationDisplayName(QStringLiteral("aMule Remote"));
+    QApplication::setWindowIcon(QIcon(QStringLiteral(":/icons/app.svg")));
 
     // ADR-0006: settings persisted as INI under the platform config location.
     QSettings::setDefaultFormat(QSettings::IniFormat);
