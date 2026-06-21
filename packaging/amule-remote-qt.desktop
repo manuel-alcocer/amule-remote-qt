@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=aMule Remote
+GenericName=aMule remote control
+Comment=Qt remote control for the aMule daemon over the EC protocol
+Exec=amule-remote-qt
+Icon=amule-remote-qt
+Terminal=false
+Categories=Network;FileTransfer;
+Keywords=aMule;ed2k;eMule;Kad;P2P;download;

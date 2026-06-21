@@ -34,3 +34,12 @@ add_executable(amule-remote-qt
 
 target_link_libraries(amule-remote-qt PRIVATE ec-core Qt6::Widgets Qt6::Svg)
 target_compile_definitions(amule-remote-qt PRIVATE APP_VERSION="${PROJECT_VERSION}")
+
+# Install rules for packaging (AppImage builds an AppDir from these).
+include(GNUInstallDirs)
+install(TARGETS amule-remote-qt RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(FILES ${CMAKE_SOURCE_DIR}/packaging/amule-remote-qt.desktop
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/icons/app.svg
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps
+        RENAME amule-remote-qt.svg)
