@@ -9,6 +9,10 @@ add_executable(amule-remote-qt
     downloadtablemodel.cpp
     progressbardelegate.h
     progressbardelegate.cpp
+    searchresultmodel.h
+    searchresultmodel.cpp
+    searchpanel.h
+    searchpanel.cpp
 )
 
 target_link_libraries(amule-remote-qt PRIVATE ec-core Qt6::Widgets)

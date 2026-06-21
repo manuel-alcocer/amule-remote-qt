@@ -20,6 +20,7 @@ class QTableView;
 namespace amule {
 
 class DownloadTableModel;
+class SearchPanel;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -56,6 +57,7 @@ private:
     QPushButton* disconnectBtn_ = nullptr;
 
     QTableView* table_ = nullptr;
+    SearchPanel* searchPanel_ = nullptr;
     QPlainTextEdit* log_ = nullptr;
     QLabel* statusLabel_ = nullptr;
     QLabel* netLabel_ = nullptr;
