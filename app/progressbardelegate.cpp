@@ -21,7 +21,9 @@ void ProgressBarDelegate::paint(QPainter* painter,
     bar.text = QStringLiteral("%1%").arg(percent);
     bar.textVisible = true;
     bar.textAlignment = Qt::AlignCenter;
-    bar.state = option.state;
+    // Mark the bar as horizontal; without State_Horizontal styles assume a
+    // vertical bar and render the percentage text rotated.
+    bar.state = (option.state | QStyle::State_Horizontal) & ~QStyle::State_Selected;
 
     QApplication::style()->drawControl(QStyle::CE_ProgressBar, &bar, painter);
 }
