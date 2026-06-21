@@ -15,13 +15,15 @@ set(CMAKE_AUTOMOC ON)
 option(AMULE_REMOTE_QT_BUILD_TESTS "Build the unit tests" ON)
 
 # ADR-0002: minimum supported Qt is 6.5 LTS. ec-core uses Qt Core and Network
-# (QTcpSocket for the EC client) but never Qt Widgets (ADR-0003).
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Network)
+# (QTcpSocket for the EC client) but never Qt Widgets (ADR-0003); the GUI app
+# uses Qt Widgets.
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Network Widgets)
 
 # ADR-0003: the EC protocol core is a GUI-agnostic library.
 add_subdirectory(core)
 
-# The Qt Widgets GUI application is added in a later feature.
+# ADR-0002/0003: the Qt Widgets GUI application links ec-core.
+add_subdirectory(app)
 
 if(AMULE_REMOTE_QT_BUILD_TESTS)
     enable_testing()
