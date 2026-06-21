@@ -1,5 +1,7 @@
 #include "downloadtablemodel.h"
 
+#include <algorithm>
+
 namespace amule {
 
 DownloadTableModel::DownloadTableModel(QObject* parent)
@@ -88,9 +90,23 @@ quint32 DownloadTableModel::ecidAt(int row) const {
 }
 
 void DownloadTableModel::setDownloads(const QList<Download>& downloads) {
-    beginResetModel();
-    downloads_ = downloads;
-    endResetModel();
+    // When the queue has the same rows in the same order (the common case on a
+    // periodic refresh), update values in place and emit dataChanged rather than
+    // resetting the model — a reset would clear the view's selection and current
+    // index every tick.
+    const bool sameLayout =
+        downloads.size() == downloads_.size() &&
+        std::equal(downloads.cbegin(), downloads.cend(), downloads_.cbegin(),
+                   [](const Download& a, const Download& b) { return a.hash == b.hash; });
+
+    if (sameLayout && !downloads.isEmpty()) {
+        downloads_ = downloads;
+        emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1));
+    } else {
+        beginResetModel();
+        downloads_ = downloads;
+        endResetModel();
+    }
 }
 
 } // namespace amule
