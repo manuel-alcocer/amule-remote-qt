@@ -19,6 +19,8 @@ add_executable(amule-remote-qt
     sharedfilemodel.cpp
     sourcetablemodel.h
     sourcetablemodel.cpp
+    preferencesdialog.h
+    preferencesdialog.cpp
 )
 
 target_link_libraries(amule-remote-qt PRIVATE ec-core Qt6::Widgets)

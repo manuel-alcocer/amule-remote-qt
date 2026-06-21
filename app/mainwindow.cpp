@@ -26,6 +26,7 @@
 
 #include "downloadtablemodel.h"
 #include "ec/client.h"
+#include "preferencesdialog.h"
 #include "progressbardelegate.h"
 #include "searchpanel.h"
 #include "servertablemodel.h"
@@ -223,6 +224,11 @@ void MainWindow::buildToolBar() {
     connectedActions_.append(addLinkAction);
 
     addCommand(QStringLiteral("Clear completed"), "clearCompleted");
+    toolbar->addSeparator();
+
+    QAction* prefsAction = toolbar->addAction(QStringLiteral("Preferences…"));
+    connect(prefsAction, &QAction::triggered, this, &MainWindow::onOpenPreferences);
+    connectedActions_.append(prefsAction);
 }
 
 void MainWindow::onAddLink() {
@@ -241,6 +247,7 @@ void MainWindow::wireWorker() {
     connect(w, &EcWorker::statusChanged, this, &MainWindow::onStatusChanged);
     connect(w, &EcWorker::statsUpdated, this, &MainWindow::onStats);
     connect(w, &EcWorker::connStateUpdated, this, &MainWindow::onConnState);
+    connect(w, &EcWorker::prefsUpdated, this, &MainWindow::onPrefs);
     connect(w, &EcWorker::logMessage, this, &MainWindow::onLog);
     connect(w, &EcWorker::downloadsUpdated, model_, &DownloadTableModel::setDownloads);
 
@@ -392,6 +399,18 @@ void MainWindow::onConnState(ConnState conn) {
     const QString kad =
         conn.kadConnected ? QStringLiteral("Kad: on") : QStringLiteral("Kad: off");
     netLabel_->setText(QStringLiteral("%1   |   %2").arg(ed2k, kad));
+}
+
+void MainWindow::onPrefs(DaemonPrefs prefs) {
+    lastPrefs_ = std::move(prefs);
+}
+
+void MainWindow::onOpenPreferences() {
+    PreferencesDialog dialog(lastPrefs_, this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+    QMetaObject::invokeMethod(worker(), "applyPrefs", Qt::QueuedConnection,
+                              Q_ARG(amule::DaemonPrefs, dialog.prefs()));
 }
 
 void MainWindow::onLog(const QString& message) {
