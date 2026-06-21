@@ -7,6 +7,7 @@
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QIcon>
 #include <QInputDialog>
 #include <QLabel>
 #include <QLineEdit>
@@ -112,16 +113,21 @@ void MainWindow::buildUi() {
     table_->setItemDelegateForColumn(DownloadTableModel::Progress,
                                      new ProgressBarDelegate(this));
     table_->setContextMenuPolicy(Qt::CustomContextMenu);
+    table_->setShowGrid(false);
     auto* header = table_->horizontalHeader();
     header->setSectionResizeMode(DownloadTableModel::Name, QHeaderView::Stretch);
     for (int c = DownloadTableModel::Status; c < DownloadTableModel::ColumnCount; ++c)
         header->setSectionResizeMode(c, QHeaderView::ResizeToContents);
+    // Give the progress bar a stable, readable width.
+    header->setSectionResizeMode(DownloadTableModel::Progress, QHeaderView::Interactive);
+    table_->setColumnWidth(DownloadTableModel::Progress, 140);
 
     const auto configureTable = [](QTableView* view, int stretchColumn) {
         view->setSelectionBehavior(QAbstractItemView::SelectRows);
         view->setSelectionMode(QAbstractItemView::SingleSelection);
         view->setEditTriggers(QAbstractItemView::NoEditTriggers);
         view->setAlternatingRowColors(true);
+        view->setShowGrid(false);
         view->verticalHeader()->setVisible(false);
         view->horizontalHeader()->setSectionResizeMode(stretchColumn,
                                                         QHeaderView::Stretch);
@@ -203,10 +209,14 @@ void MainWindow::buildUi() {
 
 void MainWindow::buildToolBar() {
     auto* toolbar = addToolBar(QStringLiteral("Network"));
-    toolbar->setToolButtonStyle(Qt::ToolButtonTextOnly);
+    toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    toolbar->setMovable(false);
 
-    const auto addCommand = [&](const QString& text, const char* slot) {
-        QAction* action = toolbar->addAction(text);
+    // Freedesktop theme icons; absent themes (e.g. on Windows) fall back to the
+    // text label, so the toolbar stays usable everywhere.
+    const auto addCommand = [&](const QString& text, const QString& icon,
+                                const char* slot) {
+        QAction* action = toolbar->addAction(QIcon::fromTheme(icon), text);
         connect(action, &QAction::triggered, this, [this, slot] {
             QMetaObject::invokeMethod(worker(), slot, Qt::QueuedConnection);
         });
@@ -214,24 +224,35 @@ void MainWindow::buildToolBar() {
         return action;
     };
 
-    addCommand(QStringLiteral("Connect networks"), "connectNetworks");
-    addCommand(QStringLiteral("Disconnect networks"), "disconnectNetworks");
+    addCommand(QStringLiteral("Connect networks"),
+               QStringLiteral("network-transmit-receive"), "connectNetworks");
+    addCommand(QStringLiteral("Disconnect networks"),
+               QStringLiteral("network-offline"), "disconnectNetworks");
     toolbar->addSeparator();
-    addCommand(QStringLiteral("Start Kad"), "startKad");
-    addCommand(QStringLiteral("Stop Kad"), "stopKad");
+    addCommand(QStringLiteral("Start Kad"), QStringLiteral("network-wireless"),
+               "startKad");
+    addCommand(QStringLiteral("Stop Kad"),
+               QStringLiteral("network-wireless-offline"), "stopKad");
     toolbar->addSeparator();
-    addCommand(QStringLiteral("Connect server"), "serverConnectAny");
-    addCommand(QStringLiteral("Disconnect server"), "serverDisconnect");
+    addCommand(QStringLiteral("Connect server"), QStringLiteral("network-server"),
+               "serverConnectAny");
+    addCommand(QStringLiteral("Disconnect server"),
+               QStringLiteral("network-server"), "serverDisconnect");
     toolbar->addSeparator();
 
-    QAction* addLinkAction = toolbar->addAction(QStringLiteral("Add ed2k link…"));
+    QAction* addLinkAction =
+        toolbar->addAction(QIcon::fromTheme(QStringLiteral("list-add")),
+                           QStringLiteral("Add ed2k link…"));
     connect(addLinkAction, &QAction::triggered, this, &MainWindow::onAddLink);
     connectedActions_.append(addLinkAction);
 
-    addCommand(QStringLiteral("Clear completed"), "clearCompleted");
+    addCommand(QStringLiteral("Clear completed"),
+               QStringLiteral("edit-clear-all"), "clearCompleted");
     toolbar->addSeparator();
 
-    QAction* prefsAction = toolbar->addAction(QStringLiteral("Preferences…"));
+    QAction* prefsAction =
+        toolbar->addAction(QIcon::fromTheme(QStringLiteral("preferences-system")),
+                           QStringLiteral("Preferences…"));
     connect(prefsAction, &QAction::triggered, this, &MainWindow::onOpenPreferences);
     connectedActions_.append(prefsAction);
 }
@@ -363,22 +384,29 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
 void MainWindow::onStatusChanged(ConnStatus status, const QString& detail) {
     bool connected = false;
     bool connecting = false;
+    QString color;
     switch (status) {
     case ConnStatus::Disconnected:
         statusLabel_->setText(QStringLiteral("Disconnected"));
         break;
     case ConnStatus::Connecting:
         statusLabel_->setText(QStringLiteral("Connecting to %1…").arg(detail));
+        color = QStringLiteral("#d9a441");
         connecting = true;
         break;
     case ConnStatus::Connected:
         statusLabel_->setText(QStringLiteral("Connected — daemon %1").arg(detail));
+        color = QStringLiteral("#4cc06a");
         connected = true;
         break;
     case ConnStatus::Error:
         statusLabel_->setText(QStringLiteral("Error: %1").arg(detail));
+        color = QStringLiteral("#d9534f");
         break;
     }
+    statusLabel_->setStyleSheet(
+        color.isEmpty() ? QString()
+                        : QStringLiteral("color:%1; font-weight:bold;").arg(color));
     connectBtn_->setEnabled(!connected && !connecting);
     disconnectBtn_->setEnabled(connected);
     for (QAction* action : connectedActions_)
