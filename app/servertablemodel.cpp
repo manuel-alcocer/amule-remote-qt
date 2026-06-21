@@ -1,5 +1,7 @@
 #include "servertablemodel.h"
 
+#include <algorithm>
+
 namespace amule {
 
 ServerTableModel::ServerTableModel(QObject* parent)
@@ -92,9 +94,22 @@ quint16 ServerTableModel::portAt(int row) const {
 }
 
 void ServerTableModel::setServers(const QList<Server>& servers) {
-    beginResetModel();
-    servers_ = servers;
-    endResetModel();
+    // Update in place when the same servers are listed in the same order, so a
+    // periodic refresh doesn't clear the table's selection.
+    const bool sameLayout =
+        servers.size() == servers_.size() &&
+        std::equal(servers.cbegin(), servers.cend(), servers_.cbegin(),
+                   [](const Server& a, const Server& b) {
+                       return a.ip == b.ip && a.port == b.port;
+                   });
+    if (sameLayout && !servers.isEmpty()) {
+        servers_ = servers;
+        emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1));
+    } else {
+        beginResetModel();
+        servers_ = servers;
+        endResetModel();
+    }
 }
 
 } // namespace amule

@@ -1,5 +1,7 @@
 #include "sourcetablemodel.h"
 
+#include <algorithm>
+
 namespace amule {
 
 SourceTableModel::SourceTableModel(QObject* parent)
@@ -81,15 +83,27 @@ void SourceTableModel::setFileEcid(quint32 ecid) {
 }
 
 void SourceTableModel::rebuild() {
-    beginResetModel();
-    visible_.clear();
+    QList<SourceClient> next;
     if (fileEcid_ != 0) {
         for (const SourceClient& c : all_) {
             if (c.fileEcid == fileEcid_)
-                visible_.append(c);
+                next.append(c);
         }
     }
-    endResetModel();
+    // Update in place when the same sources are listed in the same order, so a
+    // periodic refresh doesn't clear the selection.
+    const bool sameLayout =
+        next.size() == visible_.size() &&
+        std::equal(next.cbegin(), next.cend(), visible_.cbegin(),
+                   [](const SourceClient& a, const SourceClient& b) { return a.id == b.id; });
+    if (sameLayout && !next.isEmpty()) {
+        visible_ = next;
+        emit dataChanged(index(0, 0), index(rowCount() - 1, ColumnCount - 1));
+    } else {
+        beginResetModel();
+        visible_ = next;
+        endResetModel();
+    }
 }
 
 } // namespace amule
