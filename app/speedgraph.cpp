@@ -79,7 +79,7 @@ void SpeedGraph::paintEvent(QPaintEvent*) {
     painter.fillRect(area, Qt::black);
 
     constexpr int kCell = 7;                 // dot pitch in px
-    const double kRadius = kCell * 0.36;     // dot radius
+    const double kRadius = kCell * 0.27;     // dot radius (25% smaller LEDs)
     const int cols = std::max(1, area.width() / kCell);
     const int rows = std::max(1, area.height() / kCell);
 
