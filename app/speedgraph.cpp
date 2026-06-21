@@ -2,10 +2,11 @@
 
 #include <algorithm>
 
+#include <cmath>
+
 #include <QDataStream>
 #include <QFile>
 #include <QPainter>
-#include <QPainterPath>
 #include <QSaveFile>
 
 #include "model/model.h"
@@ -13,8 +14,6 @@
 namespace amule {
 
 namespace {
-const QColor kDownColor(0x4c, 0xc0, 0x6a);
-const QColor kUpColor(0x4a, 0x90, 0xd9);
 constexpr quint32 kMagic = 0x53504731; // "SPG1"
 } // namespace
 
@@ -72,59 +71,75 @@ void SpeedGraph::load(const QString& path) {
 
 void SpeedGraph::paintEvent(QPaintEvent*) {
     QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
 
-    const QRectF area = QRectF(rect()).adjusted(0.5, 0.5, -0.5, -0.5);
-    painter.fillRect(area, palette().base());
-    painter.setPen(palette().mid().color());
-    painter.drawRect(area);
+    // LED dot-matrix panel: black background, a grid of dim dots, with the
+    // download level lit as a green→amber→red VU column and the upload level
+    // marked by a blue cap dot per column.
+    const QRect area = rect();
+    painter.fillRect(area, Qt::black);
+
+    constexpr int kCell = 7;                 // dot pitch in px
+    const double kRadius = kCell * 0.36;     // dot radius
+    const int cols = std::max(1, area.width() / kCell);
+    const int rows = std::max(1, area.height() / kCell);
+
+    // Center the matrix within the widget.
+    const int offsetX = (area.width() - cols * kCell) / 2;
+    const int offsetY = (area.height() - rows * kCell) / 2;
+    const auto cx = [&](int c) { return offsetX + c * kCell + kCell / 2.0; };
+    const auto cy = [&](int r) { // row 0 at the bottom
+        return offsetY + (rows - 1 - r) * kCell + kCell / 2.0;
+    };
+
+    const QColor kDim(0x10, 0x20, 0x12);     // unlit LED
+    const QColor kGreen(0x33, 0xdd, 0x55);
+    const QColor kAmber(0xff, 0xcc, 0x33);
+    const QColor kRed(0xff, 0x44, 0x44);
+    const QColor kBlue(0x55, 0xbb, 0xff);
+
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(Qt::NoPen);
+
+    // Dim matrix backdrop.
+    painter.setBrush(kDim);
+    for (int c = 0; c < cols; ++c)
+        for (int r = 0; r < rows; ++r)
+            painter.drawEllipse(QPointF(cx(c), cy(r)), kRadius, kRadius);
 
     const qsizetype n = down_.size();
     quint64 peak = 1;
     for (qsizetype i = 0; i < n; ++i)
         peak = std::max({peak, down_.at(i), up_.at(i)});
 
-    const auto buildPath = [&](const QList<quint64>& series, bool fill) {
-        QPainterPath path;
-        if (series.isEmpty())
-            return path;
-        const double w = area.width();
-        const double h = area.height();
-        const auto xAt = [&](qsizetype i) {
-            return area.left() + (n <= 1 ? w : w * double(i) / double(n - 1));
-        };
-        const auto yAt = [&](quint64 v) {
-            return area.bottom() - (h * double(v) / double(peak));
-        };
-        if (fill)
-            path.moveTo(xAt(0), area.bottom());
-        else
-            path.moveTo(xAt(0), yAt(series.at(0)));
-        for (qsizetype i = 0; i < series.size(); ++i)
-            path.lineTo(xAt(i), yAt(series.at(i)));
-        if (fill)
-            path.lineTo(xAt(series.size() - 1), area.bottom());
-        return path;
-    };
+    // Show the most recent `cols` samples, aligned to the right edge.
+    const qsizetype first = std::max<qsizetype>(0, n - cols);
+    for (qsizetype i = first; i < n; ++i) {
+        const int c = static_cast<int>(i - first);
+        const int downRows =
+            static_cast<int>(std::lround(double(down_.at(i)) / double(peak) * rows));
+        for (int r = 0; r < downRows && r < rows; ++r) {
+            const double f = rows > 1 ? double(r) / double(rows - 1) : 0.0;
+            painter.setBrush(f < 0.6 ? kGreen : (f < 0.85 ? kAmber : kRed));
+            painter.drawEllipse(QPointF(cx(c), cy(r)), kRadius, kRadius);
+        }
+        const int upRows =
+            static_cast<int>(std::lround(double(up_.at(i)) / double(peak) * rows));
+        if (upRows > 0) {
+            painter.setBrush(kBlue);
+            painter.drawEllipse(QPointF(cx(c), cy(std::min(upRows - 1, rows - 1))),
+                                kRadius, kRadius);
+        }
+    }
 
-    // Download as a filled area; upload as a line on top.
-    QColor fillColor = kDownColor;
-    fillColor.setAlpha(70);
-    painter.fillPath(buildPath(down_, true), fillColor);
-    painter.setPen(QPen(kDownColor, 1.5));
-    painter.drawPath(buildPath(down_, false));
-    painter.setPen(QPen(kUpColor, 1.5));
-    painter.drawPath(buildPath(up_, false));
-
-    // Current-rate legend.
+    // LED-style legend.
     const quint64 curDown = down_.isEmpty() ? 0 : down_.last();
     const quint64 curUp = up_.isEmpty() ? 0 : up_.last();
-    painter.setPen(palette().text().color());
-    painter.drawText(area.adjusted(6, 4, -6, -4), Qt::AlignTop | Qt::AlignLeft,
+    painter.setPen(kGreen);
+    painter.drawText(area.adjusted(6, 3, -6, -3), Qt::AlignTop | Qt::AlignLeft,
                      QStringLiteral("↓ %1   ↑ %2")
                          .arg(humanRate(curDown), humanRate(curUp)));
-    painter.setPen(palette().mid().color());
-    painter.drawText(area.adjusted(6, 4, -6, -4), Qt::AlignTop | Qt::AlignRight,
+    painter.setPen(QColor(0x66, 0x88, 0x66));
+    painter.drawText(area.adjusted(6, 3, -6, -3), Qt::AlignTop | Qt::AlignRight,
                      QStringLiteral("peak %1").arg(humanRate(peak)));
 }
 
