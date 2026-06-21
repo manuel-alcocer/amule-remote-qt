@@ -1,4 +1,4 @@
-# ADR-0002 — Qt 6 + C++17 + CMake, targeting Linux and Windows
+# ADR-0002 — Latest Qt 6 + latest C++ (C++23) + CMake, targeting Linux and Windows
 
 - **Status:** Accepted
 - **Date:** 2026-06-21
@@ -13,12 +13,16 @@ project name fixes the GUI toolkit: **Qt**.
 
 ## Decision
 
-- **Language:** C++17.
-- **GUI toolkit:** **Qt 6** (Qt Widgets for v0.1.0). Widgets give us native
-  controls, model/view tables for the transfer/search lists, and mature
-  cross-platform behaviour without a custom render loop.
-- **Build system:** **CMake** (Qt 6's first-class build system), so the same
-  tree builds on Linux and Windows.
+- **Language:** the **latest published C++ standard, C++23** (`set(CMAKE_CXX_STANDARD 23)`,
+  `CMAKE_CXX_STANDARD_REQUIRED ON`). We always track the newest standard our
+  toolchains fully support; move to C++26 once GCC/Clang/MSVC ship complete
+  support.
+- **GUI toolkit:** the **latest stable Qt 6** (Qt 6.9 or newer; do not pin to an
+  old LTS). Qt Widgets for v0.1.0 — native controls, model/view tables for the
+  transfer/search lists, and mature cross-platform behaviour without a custom
+  render loop.
+- **Build system:** **CMake** (Qt 6's first-class build system), minimum
+  **CMake 3.21+**, so the same tree builds on Linux and Windows.
 - **Target platforms:** Linux and Windows (64-bit). macOS is not a goal for
   v0.1.0 but nothing in the design should preclude it.
 
@@ -30,8 +34,11 @@ project name fixes the GUI toolkit: **Qt**.
 - CMake targets: a core library and a GUI app ([ADR-0003](0003-decouple-ec-core-from-gui.md)).
 - Qt 6 is a build/runtime dependency; Windows builds need a Qt toolchain
   (MSVC or MinGW) — packaging is deferred with the pipelines ([ADR-0007](0007-defer-ci-release-pipelines.md)).
-- C++17 (not 20) keeps the compiler floor low for both platforms while still
-  giving `std::optional`, structured bindings, and `std::filesystem`.
+- Tracking the latest Qt and C++23 means a **recent compiler floor** (GCC 13+,
+  Clang 16+, MSVC 19.36+ / VS 2022 17.6+) on both platforms. This is acceptable
+  given local-only builds for now; revisit if older toolchains must be supported.
+- C++23 buys `std::expected`, `std::print`, ranges improvements, and deducing
+  `this` over C++17 — useful for the EC codec and error handling.
 
 ## Alternatives considered
 
