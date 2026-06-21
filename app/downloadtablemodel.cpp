@@ -27,6 +27,8 @@ QVariant DownloadTableModel::data(const QModelIndex& index, int role) const {
     // not by their formatted text.
     if (role == Qt::UserRole) {
         switch (index.column()) {
+        case PartNum:
+            return d.partMetId;
         case Name:
             return d.name;
         case Status:
@@ -46,6 +48,7 @@ QVariant DownloadTableModel::data(const QModelIndex& index, int role) const {
 
     if (role == Qt::TextAlignmentRole) {
         switch (index.column()) {
+        case PartNum:
         case Size:
         case Speed:
         case Sources:
@@ -59,6 +62,8 @@ QVariant DownloadTableModel::data(const QModelIndex& index, int role) const {
         return {};
 
     switch (index.column()) {
+    case PartNum:
+        return d.partMetId > 0 ? QString::number(d.partMetId) : QStringLiteral("—");
     case Name:
         return d.name;
     case Status:
@@ -81,6 +86,8 @@ QVariant DownloadTableModel::headerData(int section, Qt::Orientation orientation
     if (orientation != Qt::Horizontal || role != Qt::DisplayRole)
         return {};
     switch (section) {
+    case PartNum:
+        return QStringLiteral("Part#");
     case Name:
         return QStringLiteral("Name");
     case Status:
