@@ -6,8 +6,10 @@ add_library(ec-core STATIC
     ec/tag.h
     ec/packet.h
     ec/codec.cpp
+    ec/client.h
+    ec/client.cpp
 )
 
 target_include_directories(ec-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(ec-core PUBLIC Qt6::Core)
+target_link_libraries(ec-core PUBLIC Qt6::Core Qt6::Network)
 target_compile_features(ec-core PUBLIC cxx_std_23)
