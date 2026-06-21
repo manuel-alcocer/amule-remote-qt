@@ -45,6 +45,8 @@ private slots:
     void onStatusChanged(amule::ConnStatus status, const QString& detail);
     void onStats(amule::Stats stats);
     void onConnState(amule::ConnState conn);
+    void onPrefs(amule::DaemonPrefs prefs);
+    void onOpenPreferences();
     void onLog(const QString& message);
 
 private:
@@ -78,6 +80,9 @@ private:
 
     // Toolbar actions that require an active connection.
     QList<QAction*> connectedActions_;
+
+    // Latest daemon preferences snapshot, used to seed the preferences dialog.
+    DaemonPrefs lastPrefs_;
 };
 
 } // namespace amule
