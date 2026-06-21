@@ -54,11 +54,15 @@ private slots:
     void onStats(amule::Stats stats);
     void onConnState(amule::ConnState conn);
     void onLog(const QString& message);
+    void onDownloadsUpdated(const QList<amule::Download>& downloads);
 
 private:
     void buildUi();
     void buildMenuBar();
     void wireWorker();
+    // Merge the live queue with client-side retained completed downloads and
+    // push the result to the model.
+    void refreshDownloadView();
     void loadSettings();
     void saveSettings();
     [[nodiscard]] EcWorker* worker() const { return workerThread_.worker(); }
@@ -92,6 +96,11 @@ private:
 
     // Latest daemon preferences snapshot, used to seed the preferences dialog.
     DaemonPrefs lastPrefs_;
+
+    // Last live download queue, and downloads that finished and are kept on
+    // screen until the user clears them (the daemon drops them from the queue).
+    QList<amule::Download> lastQueue_;
+    QList<amule::Download> retainedCompleted_;
 
     // Path of the persisted speed-graph history.
     QString speedHistoryPath_;

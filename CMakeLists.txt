@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(amule-remote-qt
-    VERSION 0.1.2
+    VERSION 0.1.3
     DESCRIPTION "Qt remote control for aMule, driving amuled over the EC protocol"
     LANGUAGES CXX)
 

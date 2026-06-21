@@ -32,6 +32,8 @@
 #include <QTabWidget>
 #include <QVBoxLayout>
 
+#include <algorithm>
+
 #include "addserverdialog.h"
 #include "downloadtablemodel.h"
 #include "ec/client.h"
@@ -214,6 +216,8 @@ void MainWindow::buildUi() {
 
     connect(addLinkBtn, &QPushButton::clicked, this, &MainWindow::onAddLink);
     connect(clearBtn, &QPushButton::clicked, this, [this] {
+        retainedCompleted_.clear();
+        refreshDownloadView();
         QMetaObject::invokeMethod(worker(), "clearCompleted", Qt::QueuedConnection);
     });
     connectedWidgets_ << addLinkBtn << clearBtn;
@@ -382,6 +386,27 @@ void MainWindow::buildMenuBar() {
     langMenu->addSeparator();
     for (const i18n::Language& lang : i18n::languages())
         addLang(lang.nativeName, lang.code);
+
+    auto* helpMenu = menuBar()->addMenu(tr("&Help"));
+    connect(helpMenu->addAction(tr("About aMule Remote")), &QAction::triggered, this, [this] {
+        QMessageBox box(this);
+        box.setWindowTitle(tr("About aMule Remote"));
+        box.setIconPixmap(QIcon(QStringLiteral(":/icons/app.svg")).pixmap(64, 64));
+        box.setTextFormat(Qt::RichText);
+        box.setText(
+            tr("<h3>aMule Remote %1</h3>"
+               "<p>A <a href=\"https://linuxarena.net\">linuxarena.net</a> project — "
+               "a Qt remote control for the aMule daemon over the EC protocol.</p>"
+               "<p><b>Manuel Alcocer J.</b><br>"
+               "<a href=\"mailto:hostmaster@linuxarena.net\">hostmaster@linuxarena.net</a><br>"
+               "Sevilla, Andalucía (España)</p>"
+               "<p><a href=\"https://linuxarena.net/en/apps/amule-remote-qt/\">Project page</a> · "
+               "<a href=\"https://github.com/manuel-alcocer/amule-remote-qt\">GitHub</a></p>"
+               "<p>License: GPL-3.0-or-later</p>")
+                .arg(QStringLiteral(APP_VERSION)));
+        box.setTextInteractionFlags(Qt::TextBrowserInteraction);
+        box.exec();
+    });
 }
 
 void MainWindow::wireWorker() {
@@ -400,7 +425,7 @@ void MainWindow::wireWorker() {
         QMetaObject::invokeMethod(worker(), "fetchPrefs", Qt::QueuedConnection);
     });
     connect(w, &EcWorker::logMessage, this, &MainWindow::onLog);
-    connect(w, &EcWorker::downloadsUpdated, model_, &DownloadTableModel::setDownloads);
+    connect(w, &EcWorker::downloadsUpdated, this, &MainWindow::onDownloadsUpdated);
 
     // Search panel <-> worker.
     connect(w, &EcWorker::searchResultsUpdated, searchPanel_, &SearchPanel::setResults);
@@ -538,10 +563,18 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
             return;
         slot = "remove";
     }
-    if (slot)
+    if (slot) {
         for (const Hash16& hash : hashes)
             QMetaObject::invokeMethod(worker(), slot, Qt::QueuedConnection,
                                       Q_ARG(amule::Hash16, hash));
+        // Deleting also drops any retained completed entries for those hashes.
+        if (qstrcmp(slot, "remove") == 0) {
+            for (const Hash16& hash : hashes)
+                retainedCompleted_.removeIf(
+                    [&](const Download& d) { return d.hash == hash; });
+            refreshDownloadView();
+        }
+    }
 }
 
 void MainWindow::onStatusChanged(ConnStatus status, const QString& detail) {
@@ -551,6 +584,9 @@ void MainWindow::onStatusChanged(ConnStatus status, const QString& detail) {
     switch (status) {
     case ConnStatus::Disconnected:
         statusLabel_->setText(tr("Disconnected"));
+        // Drop retained completed downloads from the previous session.
+        retainedCompleted_.clear();
+        lastQueue_.clear();
         break;
     case ConnStatus::Connecting:
         statusLabel_->setText(tr("Connecting to %1…").arg(detail));
@@ -621,6 +657,64 @@ void MainWindow::onUpdateServers() {
 
 void MainWindow::onLog(const QString& message) {
     log_->appendPlainText(message);
+}
+
+namespace {
+
+// Two snapshots refer to the same download if their hash (or, failing that,
+// their EC id) matches.
+bool sameDownload(const Download& a, const Download& b) {
+    if (a.hash != Hash16{} && a.hash == b.hash)
+        return true;
+    return a.ecid != 0 && a.ecid == b.ecid;
+}
+
+bool inList(const QList<Download>& list, const Download& d) {
+    return std::any_of(list.begin(), list.end(),
+                       [&](const Download& x) { return sameDownload(x, d); });
+}
+
+// A download counts as finished when the daemon flags it complete/completing or
+// it has reached 100%.
+bool isFinished(const Download& d) {
+    using namespace amule::ec::status;
+    return d.status == COMPLETE || d.status == COMPLETING ||
+           (d.sizeFull > 0 && d.sizeDone >= d.sizeFull);
+}
+
+Download asCompleted(Download d) {
+    d.status = amule::ec::status::COMPLETE;
+    d.speed = 0;
+    if (d.sizeFull > 0)
+        d.sizeDone = d.sizeFull;
+    return d;
+}
+
+} // namespace
+
+void MainWindow::onDownloadsUpdated(const QList<Download>& queue) {
+    // A download the daemon dropped from the queue while finished is kept on
+    // screen (retained) until the user clears completed downloads.
+    for (const Download& prev : lastQueue_)
+        if (!inList(queue, prev) && isFinished(prev) && !inList(retainedCompleted_, prev))
+            retainedCompleted_.append(asCompleted(prev));
+
+    // Also retain anything currently reported as finished, so it survives the
+    // moment the daemon removes it from the queue.
+    for (const Download& d : queue)
+        if (isFinished(d) && !inList(retainedCompleted_, d))
+            retainedCompleted_.append(asCompleted(d));
+
+    lastQueue_ = queue;
+    refreshDownloadView();
+}
+
+void MainWindow::refreshDownloadView() {
+    QList<Download> display = lastQueue_;
+    for (const Download& r : retainedCompleted_)
+        if (!inList(lastQueue_, r))
+            display.append(r);
+    model_->setDownloads(display);
 }
 
 void MainWindow::loadSettings() {
