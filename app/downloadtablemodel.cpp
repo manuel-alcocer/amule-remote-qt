@@ -23,6 +23,27 @@ QVariant DownloadTableModel::data(const QModelIndex& index, int role) const {
     if (role == ProgressRole)
         return static_cast<int>(d.progress() * 100.0F);
 
+    // Numeric sort keys so columns with units (Size, Speed, …) sort by value,
+    // not by their formatted text.
+    if (role == Qt::UserRole) {
+        switch (index.column()) {
+        case Name:
+            return d.name;
+        case Status:
+            return d.statusLabel();
+        case Progress:
+            return d.progress();
+        case Size:
+            return QVariant::fromValue<qulonglong>(d.sizeFull);
+        case Speed:
+            return QVariant::fromValue<qulonglong>(d.speed);
+        case Sources:
+            return QVariant::fromValue<qulonglong>(d.sourceCount);
+        default:
+            return {};
+        }
+    }
+
     if (role == Qt::TextAlignmentRole) {
         switch (index.column()) {
         case Size:

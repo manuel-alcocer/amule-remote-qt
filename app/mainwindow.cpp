@@ -132,14 +132,19 @@ void MainWindow::buildUi() {
     speedGraph_ = new SpeedGraph;
     layout->addWidget(speedGraph_);
 
-    // Download table.
+    // Download table, behind a sorting proxy so columns sort by value (numeric
+    // sort keys come from the model's Qt::UserRole).
     model_ = new DownloadTableModel(this);
+    downloadProxy_ = new QSortFilterProxyModel(this);
+    downloadProxy_->setSourceModel(model_);
+    downloadProxy_->setSortRole(Qt::UserRole);
     table_ = new QTableView;
-    table_->setModel(model_);
+    table_->setModel(downloadProxy_);
     table_->setSelectionBehavior(QAbstractItemView::SelectRows);
     table_->setSelectionMode(QAbstractItemView::SingleSelection);
     table_->setEditTriggers(QAbstractItemView::NoEditTriggers);
     table_->setAlternatingRowColors(true);
+    table_->setSortingEnabled(true);
     table_->verticalHeader()->setVisible(false);
     table_->setItemDelegateForColumn(DownloadTableModel::Progress,
                                      new ProgressBarDelegate(this));
@@ -373,7 +378,8 @@ void MainWindow::wireWorker() {
 
 void MainWindow::onTransferSelectionChanged() {
     const QModelIndex index = table_->selectionModel()->currentIndex();
-    sourceModel_->setFileEcid(index.isValid() ? model_->ecidAt(index.row()) : 0);
+    const int row = index.isValid() ? downloadProxy_->mapToSource(index).row() : -1;
+    sourceModel_->setFileEcid(row >= 0 ? model_->ecidAt(row) : 0);
 }
 
 void MainWindow::onServerContextMenu(const QPoint& pos) {
@@ -420,7 +426,7 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
     const QModelIndex index = table_->indexAt(pos);
     if (!index.isValid())
         return;
-    const Hash16 hash = model_->hashAt(index.row());
+    const Hash16 hash = model_->hashAt(downloadProxy_->mapToSource(index).row());
 
     QMenu menu(this);
     QAction* pause = menu.addAction(QStringLiteral("Pause"));

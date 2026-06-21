@@ -16,6 +16,7 @@ class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
 class QPushButton;
+class QSortFilterProxyModel;
 class QSpinBox;
 class QTableView;
 
@@ -74,6 +75,7 @@ private:
 
     SpeedGraph* speedGraph_ = nullptr;
     QTableView* table_ = nullptr;
+    QSortFilterProxyModel* downloadProxy_ = nullptr;
     SearchPanel* searchPanel_ = nullptr;
     PreferencesPanel* preferencesPanel_ = nullptr;
     QTableView* serverTable_ = nullptr;
