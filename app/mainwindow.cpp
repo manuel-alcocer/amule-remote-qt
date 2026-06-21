@@ -14,11 +14,13 @@
 #include <QSpinBox>
 #include <QStatusBar>
 #include <QTableView>
+#include <QTabWidget>
 #include <QVBoxLayout>
 
 #include "downloadtablemodel.h"
 #include "ec/client.h"
 #include "progressbardelegate.h"
+#include "searchpanel.h"
 
 namespace amule {
 
@@ -76,7 +78,19 @@ void MainWindow::buildUi() {
     header->setSectionResizeMode(DownloadTableModel::Name, QHeaderView::Stretch);
     for (int c = DownloadTableModel::Status; c < DownloadTableModel::ColumnCount; ++c)
         header->setSectionResizeMode(c, QHeaderView::ResizeToContents);
-    layout->addWidget(table_, 1);
+
+    // Tabs: Transfers + Search.
+    auto* tabs = new QTabWidget;
+    auto* transfers = new QWidget;
+    auto* transfersLayout = new QVBoxLayout(transfers);
+    transfersLayout->setContentsMargins(0, 0, 0, 0);
+    transfersLayout->addWidget(table_);
+    tabs->addTab(transfers, QStringLiteral("Transfers"));
+
+    searchPanel_ = new SearchPanel;
+    tabs->addTab(searchPanel_, QStringLiteral("Search"));
+
+    layout->addWidget(tabs, 1);
 
     setCentralWidget(central);
 
@@ -111,6 +125,22 @@ void MainWindow::wireWorker() {
     connect(w, &EcWorker::connStateUpdated, this, &MainWindow::onConnState);
     connect(w, &EcWorker::logMessage, this, &MainWindow::onLog);
     connect(w, &EcWorker::downloadsUpdated, model_, &DownloadTableModel::setDownloads);
+
+    // Search panel <-> worker.
+    connect(w, &EcWorker::searchResultsUpdated, searchPanel_, &SearchPanel::setResults);
+    connect(w, &EcWorker::searchProgressChanged, searchPanel_, &SearchPanel::setProgress);
+    connect(w, &EcWorker::searchingChanged, searchPanel_, &SearchPanel::setSearching);
+    connect(searchPanel_, &SearchPanel::searchRequested, this, [this](SearchParams params) {
+        QMetaObject::invokeMethod(worker(), "startSearch", Qt::QueuedConnection,
+                                  Q_ARG(amule::SearchParams, params));
+    });
+    connect(searchPanel_, &SearchPanel::stopRequested, this, [this] {
+        QMetaObject::invokeMethod(worker(), "stopSearch", Qt::QueuedConnection);
+    });
+    connect(searchPanel_, &SearchPanel::downloadRequested, this, [this](Hash16 hash) {
+        QMetaObject::invokeMethod(worker(), "downloadResult", Qt::QueuedConnection,
+                                  Q_ARG(amule::Hash16, hash));
+    });
 }
 
 void MainWindow::onConnectClicked() {
