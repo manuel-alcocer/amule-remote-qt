@@ -93,8 +93,6 @@ void SpeedGraph::paintEvent(QPaintEvent*) {
 
     const QColor kDim(0x10, 0x20, 0x12);     // unlit LED
     const QColor kGreen(0x33, 0xdd, 0x55);
-    const QColor kAmber(0xff, 0xcc, 0x33);
-    const QColor kRed(0xff, 0x44, 0x44);
     const QColor kBlue(0x55, 0xbb, 0xff);
 
     painter.setRenderHint(QPainter::Antialiasing);
@@ -111,25 +109,23 @@ void SpeedGraph::paintEvent(QPaintEvent*) {
     for (qsizetype i = 0; i < n; ++i)
         peak = std::max({peak, down_.at(i), up_.at(i)});
 
-    // Show the most recent `cols` samples, aligned to the right edge.
+    // Trace each series as a line of single lit LEDs: one dot per time column
+    // at the LED row matching its value. A 0 reading lands on the bottom row, so
+    // every sampled interval still shows a baseline dot.
+    const int span = std::max(1, rows - 1);
+    const auto rowFor = [&](quint64 v) {
+        return std::clamp(
+            static_cast<int>(std::lround(double(v) / double(peak) * span)), 0, rows - 1);
+    };
+
     const qsizetype first = std::max<qsizetype>(0, n - cols);
     for (qsizetype i = first; i < n; ++i) {
         const int c = static_cast<int>(i - first);
-        // Always light at least the bottom LED so every sampled interval shows a
-        // column (a 0 reading still lights the baseline).
-        const int downRows = std::max(
-            1, static_cast<int>(std::lround(double(down_.at(i)) / double(peak) * rows)));
-        for (int r = 0; r < downRows && r < rows; ++r) {
-            const double f = rows > 1 ? double(r) / double(rows - 1) : 0.0;
-            painter.setBrush(f < 0.6 ? kGreen : (f < 0.85 ? kAmber : kRed));
-            painter.drawEllipse(QPointF(cx(c), cy(r)), kRadius, kRadius);
-        }
-        const int upRows =
-            static_cast<int>(std::lround(double(up_.at(i)) / double(peak) * rows));
-        if (upRows > 0) {
+        painter.setBrush(kGreen);
+        painter.drawEllipse(QPointF(cx(c), cy(rowFor(down_.at(i)))), kRadius, kRadius);
+        if (up_.at(i) > 0) {
             painter.setBrush(kBlue);
-            painter.drawEllipse(QPointF(cx(c), cy(std::min(upRows - 1, rows - 1))),
-                                kRadius, kRadius);
+            painter.drawEllipse(QPointF(cx(c), cy(rowFor(up_.at(i)))), kRadius, kRadius);
         }
     }
 
