@@ -1,12 +1,13 @@
 # Test build for a release candidate. Pushing a release/<version> branch (cut
 # from devel after the static-analysis gate passes) builds the app, runs the
-# tests and uploads the binary as a workflow artifact to validate before it is
-# tagged on main.
+# tests, packages a self-contained AppImage, smoke-tests it and uploads it as a
+# workflow artifact to validate before it is tagged on main.
 name: release-build
 
 on:
   push:
     branches: ['release/**']
+  workflow_dispatch: {} # allow manual test runs on any branch
 
 permissions:
   contents: read
@@ -16,13 +17,15 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       QT_QPA_PLATFORM: offscreen
+      APPIMAGE_EXTRACT_AND_RUN: 1 # GitHub runners have no FUSE
+      NO_STRIP: 1                 # avoid linuxdeploy's strip on .relr.dyn libs
     steps:
       - uses: actions/checkout@v4
 
       - name: Install toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++-14 ninja-build
+          sudo apt-get install -y g++-14 ninja-build wget file
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
@@ -44,17 +47,30 @@ jobs:
 
       - name: Derive version
         id: ver
-        run: echo "version=${GITHUB_REF_NAME#release/}" >> "$GITHUB_OUTPUT"
-
-      - name: Package binary
         run: |
-          mkdir -p dist
-          cp build/app/amule-remote-qt dist/
-          tar -C dist -czf "amule-remote-qt-${{ steps.ver.outputs.version }}-linux-x86_64.tar.gz" .
+          v="${GITHUB_REF_NAME#release/}"
+          case "$v" in */*|"") v="snapshot";; esac
+          echo "version=$v" >> "$GITHUB_OUTPUT"
 
-      - name: Upload artifact
+      - name: Build AppImage
+        env:
+          QMAKE: ${{ env.QT_ROOT_DIR }}/bin/qmake
+          OUTPUT: amule-remote-qt-${{ steps.ver.outputs.version }}-x86_64.AppImage
+        run: |
+          cmake --install build --prefix "$PWD/AppDir/usr"
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy*.AppImage
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir --plugin qt --output appimage
+
+      - name: Smoke-test AppImage
+        run: |
+          chmod +x amule-remote-qt-*-x86_64.AppImage
+          ./amule-remote-qt-*-x86_64.AppImage --selftest
+
+      - name: Upload AppImage
         uses: actions/upload-artifact@v4
         with:
-          name: amule-remote-qt-${{ steps.ver.outputs.version }}-test-build
-          path: amule-remote-qt-*-linux-x86_64.tar.gz
+          name: amule-remote-qt-${{ steps.ver.outputs.version }}-AppImage
+          path: amule-remote-qt-*-x86_64.AppImage
           retention-days: 14
