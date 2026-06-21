@@ -1,3 +1,14 @@
+## Development workflow
+
+This repo uses **git flow** with branch types `feature` / `fix` / `bug` / `hotfix`
+and the integration flow `devel` -> `release/0.1.0` -> `main`. Releases are cut
+with **semantic-release**.
+
+- Branch new work off `devel` (e.g. `feature/search-panel`). Never commit
+  straight to `main`.
+- Commit subjects must follow Conventional Commits (`feat:`, `fix:`, …) so
+  semantic-release can derive versions and changelogs.
+
 ## Agent skills
 
 ### Issue tracker
