@@ -8,6 +8,10 @@ add_library(ec-core STATIC
     ec/codec.cpp
     ec/client.h
     ec/client.cpp
+    ec/queries.h
+    ec/queries.cpp
+    model/model.h
+    model/model.cpp
 )
 
 target_include_directories(ec-core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
