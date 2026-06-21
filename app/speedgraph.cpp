@@ -6,8 +6,12 @@
 
 #include <QDataStream>
 #include <QFile>
+#include <QFont>
+#include <QFontMetrics>
+#include <QImage>
 #include <QPainter>
 #include <QSaveFile>
+#include <QTimer>
 
 #include "model/model.h"
 
@@ -19,6 +23,27 @@ constexpr quint32 kMagic = 0x53504731; // "SPG1"
 
 SpeedGraph::SpeedGraph(QWidget* parent) : QWidget(parent) {
     setMinimumHeight(70);
+
+    dismissTimer_ = new QTimer(this);
+    dismissTimer_->setInterval(50);
+    connect(dismissTimer_, &QTimer::timeout, this, [this] {
+        scrollCols_ += 2; // LEDs per tick
+        update();
+    });
+}
+
+void SpeedGraph::showMessage(const QString& text) {
+    message_ = text;
+    scrollCols_ = 0;
+    mode_ = Mode::Message;
+    if (dismissTimer_)
+        dismissTimer_->stop();
+    update();
+}
+
+void SpeedGraph::dismissMessage() {
+    if (mode_ == Mode::Message && dismissTimer_)
+        dismissTimer_->start();
 }
 
 QSize SpeedGraph::sizeHint() const {
@@ -103,6 +128,42 @@ void SpeedGraph::paintEvent(QPaintEvent*) {
     for (int c = 0; c < cols; ++c)
         for (int r = 0; r < rows; ++r)
             painter.drawEllipse(QPointF(cx(c), cy(r)), kRadius, kRadius);
+
+    // Message mode: render the text rasterized onto the LED grid, scrolling
+    // left. When it has fully scrolled off, fall through to the graph.
+    if (mode_ == Mode::Message && !message_.isEmpty()) {
+        QFont f = font();
+        f.setBold(true);
+        f.setPixelSize(std::max(4, rows));
+        QFontMetrics fm(f);
+        int w = fm.horizontalAdvance(message_);
+        if (w > cols && w > 0) {
+            f.setPixelSize(std::max(4, rows * cols / w));
+            fm = QFontMetrics(f);
+            w = fm.horizontalAdvance(message_);
+        }
+        const int x = (cols - w) / 2 - scrollCols_;
+        if (x + w >= 0) {
+            QImage mask(std::max(1, cols), std::max(1, rows),
+                        QImage::Format_ARGB32_Premultiplied);
+            mask.fill(Qt::transparent);
+            QPainter textPainter(&mask);
+            textPainter.setFont(f);
+            textPainter.setPen(Qt::white);
+            textPainter.drawText(x, (rows - fm.height()) / 2 + fm.ascent(), message_);
+            textPainter.end();
+
+            painter.setBrush(kGreen);
+            for (int c = 0; c < cols; ++c)
+                for (int r = 0; r < rows; ++r)
+                    if (qAlpha(mask.pixel(c, rows - 1 - r)) > 110)
+                        painter.drawEllipse(QPointF(cx(c), cy(r)), kRadius, kRadius);
+            return; // message shown; skip the graph this frame
+        }
+        mode_ = Mode::Graph; // fully scrolled off
+        if (dismissTimer_)
+            dismissTimer_->stop();
+    }
 
     const qsizetype n = down_.size();
     quint64 peak = 1;
