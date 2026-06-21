@@ -54,3 +54,6 @@ compile_commands.json
 *creator.user*
 
 *_qmlcache.qrc
+
+# Keep the released app translations (bundled via i18n.qrc; CI/AUR have no lrelease)
+!app/i18n/*.qm

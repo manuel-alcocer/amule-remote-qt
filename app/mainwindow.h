@@ -57,6 +57,7 @@ private slots:
 
 private:
     void buildUi();
+    void buildMenuBar();
     void wireWorker();
     void loadSettings();
     void saveSettings();

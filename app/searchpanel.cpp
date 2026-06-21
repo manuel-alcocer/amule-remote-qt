@@ -55,21 +55,21 @@ QWidget* SearchPanel::buildControls() {
     // Query row.
     auto* queryRow = new QHBoxLayout;
     queryEdit_ = new QLineEdit;
-    queryEdit_->setPlaceholderText(QStringLiteral("search terms"));
+    queryEdit_->setPlaceholderText(tr("search terms"));
     networkCombo_ = new QComboBox;
-    networkCombo_->addItem(QStringLiteral("Global ed2k"), int(SearchKind::Global));
-    networkCombo_->addItem(QStringLiteral("Kad"), int(SearchKind::Kad));
-    networkCombo_->addItem(QStringLiteral("Local"), int(SearchKind::Local));
+    networkCombo_->addItem(tr("Global ed2k"), int(SearchKind::Global));
+    networkCombo_->addItem(tr("Kad"), int(SearchKind::Kad));
+    networkCombo_->addItem(tr("Local"), int(SearchKind::Local));
     typeCombo_ = new QComboBox;
-    typeCombo_->addItem(QStringLiteral("Any type"), QString());
-    typeCombo_->addItem(QStringLiteral("Audio"), QStringLiteral("Audio"));
-    typeCombo_->addItem(QStringLiteral("Video"), QStringLiteral("Video"));
-    typeCombo_->addItem(QStringLiteral("Image"), QStringLiteral("Image"));
-    typeCombo_->addItem(QStringLiteral("Document"), QStringLiteral("Doc"));
-    typeCombo_->addItem(QStringLiteral("Program"), QStringLiteral("Pro"));
-    typeCombo_->addItem(QStringLiteral("Archive"), QStringLiteral("Arc"));
-    searchBtn_ = new QPushButton(QStringLiteral("Search"));
-    downloadBtn_ = new QPushButton(QStringLiteral("Download"));
+    typeCombo_->addItem(tr("Any type"), QString());
+    typeCombo_->addItem(tr("Audio"), QStringLiteral("Audio"));
+    typeCombo_->addItem(tr("Video"), QStringLiteral("Video"));
+    typeCombo_->addItem(tr("Image"), QStringLiteral("Image"));
+    typeCombo_->addItem(tr("Document"), QStringLiteral("Doc"));
+    typeCombo_->addItem(tr("Program"), QStringLiteral("Pro"));
+    typeCombo_->addItem(tr("Archive"), QStringLiteral("Arc"));
+    searchBtn_ = new QPushButton(tr("Search"));
+    downloadBtn_ = new QPushButton(tr("Download"));
     queryRow->addWidget(queryEdit_, 2);
     queryRow->addWidget(networkCombo_);
     queryRow->addWidget(typeCombo_);
@@ -80,38 +80,38 @@ QWidget* SearchPanel::buildControls() {
     // Filter row.
     auto* filterRow = new QHBoxLayout;
     filterEdit_ = new QLineEdit;
-    filterEdit_->setPlaceholderText(QStringLiteral("name filter"));
-    negCheck_ = new QCheckBox(QStringLiteral("neg"));
-    globCheck_ = new QCheckBox(QStringLiteral("glob"));
-    regexCheck_ = new QCheckBox(QStringLiteral("regex"));
-    onlyCompleteCheck_ = new QCheckBox(QStringLiteral("complete only"));
+    filterEdit_->setPlaceholderText(tr("name filter"));
+    negCheck_ = new QCheckBox(tr("neg"));
+    globCheck_ = new QCheckBox(tr("glob"));
+    regexCheck_ = new QCheckBox(tr("regex"));
+    onlyCompleteCheck_ = new QCheckBox(tr("complete only"));
     minSrcSpin_ = new QSpinBox;
     minSrcSpin_->setRange(0, 1'000'000);
-    minSrcSpin_->setSpecialValueText(QStringLiteral("any"));
+    minSrcSpin_->setSpecialValueText(tr("any"));
     maxSrcSpin_ = new QSpinBox;
     maxSrcSpin_->setRange(0, 1'000'000);
-    maxSrcSpin_->setSpecialValueText(QStringLiteral("any"));
-    filterRow->addWidget(new QLabel(QStringLiteral("Filter:")));
+    maxSrcSpin_->setSpecialValueText(tr("any"));
+    filterRow->addWidget(new QLabel(tr("Filter:")));
     filterRow->addWidget(filterEdit_, 2);
     filterRow->addWidget(negCheck_);
     filterRow->addWidget(globCheck_);
     filterRow->addWidget(regexCheck_);
     filterRow->addWidget(onlyCompleteCheck_);
-    filterRow->addWidget(new QLabel(QStringLiteral("min")));
+    filterRow->addWidget(new QLabel(tr("min")));
     filterRow->addWidget(minSrcSpin_);
-    filterRow->addWidget(new QLabel(QStringLiteral("max")));
+    filterRow->addWidget(new QLabel(tr("max")));
     filterRow->addWidget(maxSrcSpin_);
-    anchorCheck_ = new QCheckBox(QStringLiteral("anchor selected"));
+    anchorCheck_ = new QCheckBox(tr("anchor selected"));
     filterRow->addWidget(anchorCheck_);
     outer->addLayout(filterRow);
 
     // Saved-search row.
     auto* savedRow = new QHBoxLayout;
     savedCombo_ = new QComboBox;
-    loadBtn_ = new QPushButton(QStringLiteral("Load"));
-    saveBtn_ = new QPushButton(QStringLiteral("Save…"));
-    deleteBtn_ = new QPushButton(QStringLiteral("Delete"));
-    savedRow->addWidget(new QLabel(QStringLiteral("Saved:")));
+    loadBtn_ = new QPushButton(tr("Load"));
+    saveBtn_ = new QPushButton(tr("Save…"));
+    deleteBtn_ = new QPushButton(tr("Delete"));
+    savedRow->addWidget(new QLabel(tr("Saved:")));
     savedRow->addWidget(savedCombo_, 1);
     savedRow->addWidget(loadBtn_);
     savedRow->addWidget(saveBtn_);
@@ -255,9 +255,9 @@ void SearchPanel::onResultContextMenu(QTableView* view, const QPoint& pos) {
     const bool live = (view == liveView_);
 
     QMenu menu(this);
-    QAction* detailAct = menu.addAction(QStringLiteral("Detail"));
-    QAction* downloadAct = menu.addAction(QStringLiteral("Download"));
-    QAction* downloadSelAct = menu.addAction(QStringLiteral("Download selected"));
+    QAction* detailAct = menu.addAction(tr("Detail"));
+    QAction* downloadAct = menu.addAction(tr("Download"));
+    QAction* downloadSelAct = menu.addAction(tr("Download selected"));
     // Only the live tab's results are in the daemon and downloadable.
     downloadAct->setEnabled(live);
     downloadSelAct->setEnabled(live && view->selectionModel()->hasSelection());
@@ -276,12 +276,12 @@ void SearchPanel::onResultContextMenu(QTableView* view, const QPoint& pos) {
 void SearchPanel::showResultDetail(const SearchResult& result) {
     const QByteArray hashBytes(reinterpret_cast<const char*>(result.hash.data()), 16);
     const QString text =
-        QStringLiteral("Name:\n%1\n\nSize: %2\nSources: %3 (complete %4)\nHash: %5")
+        tr("Name:\n%1\n\nSize: %2\nSources: %3 (complete %4)\nHash: %5")
             .arg(result.name, humanBytes(result.size),
                  QString::number(result.sourceCount),
                  QString::number(result.completeSourceCount),
                  QString::fromLatin1(hashBytes.toHex()));
-    QMessageBox::information(this, QStringLiteral("Result detail"), text);
+    QMessageBox::information(this, tr("Result detail"), text);
 }
 
 void SearchPanel::updateAnchor(QTableView* view) {
@@ -376,7 +376,7 @@ void SearchPanel::updateDownloadEnabled() {
 void SearchPanel::onSaveSearch() {
     bool ok = false;
     const QString name = QInputDialog::getText(
-        this, QStringLiteral("Save search"), QStringLiteral("Name:"),
+        this, tr("Save search"), tr("Name:"),
         QLineEdit::Normal, queryEdit_->text().trimmed(), &ok);
     if (!ok || name.trimmed().isEmpty())
         return;

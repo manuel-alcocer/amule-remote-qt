@@ -51,7 +51,7 @@ QVariant ServerTableModel::data(const QModelIndex& index, int role) const {
     case Files:
         return humanCount(s.files);
     case Ping:
-        return QStringLiteral("%1 ms").arg(s.ping);
+        return tr("%1 ms").arg(s.ping);
     case Priority:
         return s.priorityLabel();
     default:
@@ -65,17 +65,17 @@ QVariant ServerTableModel::headerData(int section, Qt::Orientation orientation,
         return {};
     switch (section) {
     case Name:
-        return QStringLiteral("Name");
+        return tr("Name");
     case Address:
-        return QStringLiteral("Address");
+        return tr("Address");
     case Users:
-        return QStringLiteral("Users");
+        return tr("Users");
     case Files:
-        return QStringLiteral("Files");
+        return tr("Files");
     case Ping:
-        return QStringLiteral("Ping");
+        return tr("Ping");
     case Priority:
-        return QStringLiteral("Priority");
+        return tr("Priority");
     default:
         return {};
     }

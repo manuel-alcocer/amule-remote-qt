@@ -5,6 +5,7 @@
 #include <QTimer>
 
 #include "ec/worker.h"
+#include "i18n.h"
 #include "mainwindow.h"
 
 int main(int argc, char* argv[]) {
@@ -27,6 +28,9 @@ int main(int argc, char* argv[]) {
 
     // ADR-0006: settings persisted as INI under the platform config location.
     QSettings::setDefaultFormat(QSettings::IniFormat);
+
+    // Load translations (ES/EN; follows the system locale unless overridden).
+    amule::i18n::install(app);
 
     amule::registerEcMetaTypes();
 
