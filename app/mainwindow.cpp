@@ -5,9 +5,11 @@
 #endif
 
 #include <QAction>
+#include <QActionGroup>
 #include <QCheckBox>
 #include <QDir>
 #include <QDockWidget>
+#include <QMenuBar>
 #include <QFileInfo>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -34,6 +36,7 @@
 #include "downloadtablemodel.h"
 #include "ec/client.h"
 #include "ec/codes.h"
+#include "i18n.h"
 #include "preferencespanel.h"
 #include "progressbardelegate.h"
 #include "searchpanel.h"
@@ -67,6 +70,7 @@ RemoteConfEc readRemoteConfEc() {
 
 MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
     buildUi();
+    buildMenuBar();
     wireWorker();
     loadSettings();
     onStatusChanged(ConnStatus::Disconnected, QString());
@@ -91,7 +95,7 @@ MainWindow::MainWindow(QWidget* parent) : QMainWindow(parent) {
 
     // Welcome banner on the LED panel until the first connection.
     speedGraph_->showMessage(
-        QStringLiteral("Amule-Remote Qt %1").arg(QStringLiteral(APP_VERSION)));
+        tr("Amule-Remote Qt %1").arg(QStringLiteral(APP_VERSION)));
 }
 
 MainWindow::~MainWindow() = default;
@@ -112,22 +116,22 @@ void MainWindow::buildUi() {
     // Connection bar.
     auto* bar = new QHBoxLayout;
     hostEdit_ = new QLineEdit;
-    hostEdit_->setPlaceholderText(QStringLiteral("host"));
+    hostEdit_->setPlaceholderText(tr("host"));
     portSpin_ = new QSpinBox;
     portSpin_->setRange(1, 65535);
     portSpin_->setValue(4712);
     passEdit_ = new QLineEdit;
-    passEdit_->setPlaceholderText(QStringLiteral("password"));
+    passEdit_->setPlaceholderText(tr("password"));
     passEdit_->setEchoMode(QLineEdit::Password);
-    rememberCheck_ = new QCheckBox(QStringLiteral("Remember"));
-    connectBtn_ = new QPushButton(QStringLiteral("Connect"));
-    disconnectBtn_ = new QPushButton(QStringLiteral("Disconnect"));
+    rememberCheck_ = new QCheckBox(tr("Remember"));
+    connectBtn_ = new QPushButton(tr("Connect"));
+    disconnectBtn_ = new QPushButton(tr("Disconnect"));
 
-    bar->addWidget(new QLabel(QStringLiteral("Host:")));
+    bar->addWidget(new QLabel(tr("Host:")));
     bar->addWidget(hostEdit_, 2);
-    bar->addWidget(new QLabel(QStringLiteral("Port:")));
+    bar->addWidget(new QLabel(tr("Port:")));
     bar->addWidget(portSpin_);
-    bar->addWidget(new QLabel(QStringLiteral("Pass:")));
+    bar->addWidget(new QLabel(tr("Pass:")));
     bar->addWidget(passEdit_, 1);
     bar->addWidget(rememberCheck_);
     bar->addWidget(connectBtn_);
@@ -198,15 +202,15 @@ void MainWindow::buildUi() {
     transfersLayout->setContentsMargins(0, 0, 0, 0);
     auto* transfersButtons = new QHBoxLayout;
     auto* addLinkBtn = new QPushButton(QIcon(QStringLiteral(":/icons/add.svg")),
-                                       QStringLiteral("Add ed2k link…"));
+                                       tr("Add ed2k link…"));
     auto* clearBtn = new QPushButton(QIcon(QStringLiteral(":/icons/clear.svg")),
-                                     QStringLiteral("Clear completed"));
+                                     tr("Clear completed"));
     transfersButtons->addWidget(addLinkBtn);
     transfersButtons->addWidget(clearBtn);
     transfersButtons->addStretch(1);
     transfersLayout->addLayout(transfersButtons);
     transfersLayout->addWidget(split);
-    tabs->addTab(transfersTab, QStringLiteral("Transfers"));
+    tabs->addTab(transfersTab, tr("Transfers"));
 
     connect(addLinkBtn, &QPushButton::clicked, this, &MainWindow::onAddLink);
     connect(clearBtn, &QPushButton::clicked, this, [this] {
@@ -216,7 +220,7 @@ void MainWindow::buildUi() {
 
     // Search tab.
     searchPanel_ = new SearchPanel;
-    tabs->addTab(searchPanel_, QStringLiteral("Search"));
+    tabs->addTab(searchPanel_, tr("Search"));
 
     // Servers tab.
     serverModel_ = new ServerTableModel(this);
@@ -248,33 +252,33 @@ void MainWindow::buildUi() {
     };
 
     auto* networkRow = new QHBoxLayout;
-    networkRow->addWidget(cmdButton(QStringLiteral("Connect networks"),
+    networkRow->addWidget(cmdButton(tr("Connect networks"),
                                     QStringLiteral("connect"), "connectNetworks"));
-    networkRow->addWidget(cmdButton(QStringLiteral("Disconnect networks"),
+    networkRow->addWidget(cmdButton(tr("Disconnect networks"),
                                     QStringLiteral("disconnect"), "disconnectNetworks"));
-    networkRow->addWidget(cmdButton(QStringLiteral("Start Kad"),
+    networkRow->addWidget(cmdButton(tr("Start Kad"),
                                     QStringLiteral("kad-start"), "startKad"));
-    networkRow->addWidget(cmdButton(QStringLiteral("Stop Kad"),
+    networkRow->addWidget(cmdButton(tr("Stop Kad"),
                                     QStringLiteral("kad-stop"), "stopKad"));
     networkRow->addStretch(1);
     serversLayout->addLayout(networkRow);
 
     auto* serverRow = new QHBoxLayout;
-    serverRow->addWidget(cmdButton(QStringLiteral("Connect server"),
+    serverRow->addWidget(cmdButton(tr("Connect server"),
                                    QStringLiteral("server"), "serverConnectAny"));
-    serverRow->addWidget(cmdButton(QStringLiteral("Disconnect server"),
+    serverRow->addWidget(cmdButton(tr("Disconnect server"),
                                    QStringLiteral("server-off"), "serverDisconnect"));
     auto* addServerBtn = new QPushButton(QIcon(QStringLiteral(":/icons/add.svg")),
-                                         QStringLiteral("Add server…"));
+                                         tr("Add server…"));
     auto* updateServersBtn = new QPushButton(
-        QIcon(QStringLiteral(":/icons/refresh.svg")), QStringLiteral("Update from URL…"));
+        QIcon(QStringLiteral(":/icons/refresh.svg")), tr("Update from URL…"));
     serverRow->addWidget(addServerBtn);
     serverRow->addWidget(updateServersBtn);
     serverRow->addStretch(1);
     serversLayout->addLayout(serverRow);
 
     serversLayout->addWidget(serverTable_);
-    tabs->addTab(serversTab, QStringLiteral("Servers"));
+    tabs->addTab(serversTab, tr("Servers"));
 
     connect(addServerBtn, &QPushButton::clicked, this, &MainWindow::onAddServer);
     connect(updateServersBtn, &QPushButton::clicked, this, &MainWindow::onUpdateServers);
@@ -295,12 +299,12 @@ void MainWindow::buildUi() {
     sharedLayout->setContentsMargins(0, 0, 0, 0);
     auto* sharedButtons = new QHBoxLayout;
     auto* reloadSharedBtn = new QPushButton(QIcon(QStringLiteral(":/icons/refresh.svg")),
-                                            QStringLiteral("Refresh"));
+                                            tr("Refresh"));
     sharedButtons->addWidget(reloadSharedBtn);
     sharedButtons->addStretch(1);
     sharedLayout->addLayout(sharedButtons);
     sharedLayout->addWidget(sharedTable);
-    tabs->addTab(sharedTab, QStringLiteral("Shared"));
+    tabs->addTab(sharedTab, tr("Shared"));
 
     connect(reloadSharedBtn, &QPushButton::clicked, this, [this] {
         QMetaObject::invokeMethod(worker(), "reloadShared", Qt::QueuedConnection);
@@ -309,7 +313,7 @@ void MainWindow::buildUi() {
 
     // Preferences tab (Connection + Directories subtabs).
     preferencesPanel_ = new PreferencesPanel;
-    tabs->addTab(preferencesPanel_, QStringLiteral("Preferences"));
+    tabs->addTab(preferencesPanel_, tr("Preferences"));
     connectedWidgets_ << preferencesPanel_;
 
     layout->addWidget(tabs, 1);
@@ -318,7 +322,7 @@ void MainWindow::buildUi() {
 
     // Activity log dock. The object name lets QMainWindow::saveState persist
     // its visibility/position across runs.
-    auto* dock = new QDockWidget(QStringLiteral("Log"), this);
+    auto* dock = new QDockWidget(tr("Log"), this);
     dock->setObjectName(QStringLiteral("logDock"));
     log_ = new QPlainTextEdit;
     log_->setReadOnly(true);
@@ -348,11 +352,36 @@ void MainWindow::buildUi() {
 void MainWindow::onAddLink() {
     bool ok = false;
     const QString link = QInputDialog::getText(
-        this, QStringLiteral("Add ed2k link"), QStringLiteral("ed2k:// link:"),
+        this, tr("Add ed2k link"), tr("ed2k:// link:"),
         QLineEdit::Normal, QString(), &ok);
     if (ok && !link.trimmed().isEmpty())
         QMetaObject::invokeMethod(worker(), "addLink", Qt::QueuedConnection,
                                   Q_ARG(QString, link.trimmed()));
+}
+
+void MainWindow::buildMenuBar() {
+    auto* viewMenu = menuBar()->addMenu(tr("&View"));
+    auto* langMenu = viewMenu->addMenu(tr("Language"));
+    auto* group = new QActionGroup(this);
+
+    const QString current = i18n::currentSetting();
+    const auto addLang = [&](const QString& label, const QString& code) {
+        QAction* action = langMenu->addAction(label);
+        action->setCheckable(true);
+        action->setChecked(current == code);
+        group->addAction(action);
+        connect(action, &QAction::triggered, this, [this, code] {
+            i18n::setSetting(code);
+            QMessageBox::information(
+                this, tr("Language"),
+                tr("The language change takes effect when you restart the application."));
+        });
+    };
+
+    addLang(tr("System default"), QString());
+    langMenu->addSeparator();
+    for (const i18n::Language& lang : i18n::languages())
+        addLang(lang.nativeName, lang.code);
 }
 
 void MainWindow::wireWorker() {
@@ -411,8 +440,8 @@ void MainWindow::onServerContextMenu(const QPoint& pos) {
     const quint16 port = serverModel_->portAt(row);
 
     QMenu menu(this);
-    QAction* connectAct = menu.addAction(QStringLiteral("Connect"));
-    QAction* removeAct = menu.addAction(QStringLiteral("Remove"));
+    QAction* connectAct = menu.addAction(tr("Connect"));
+    QAction* removeAct = menu.addAction(tr("Remove"));
 
     QAction* chosen = menu.exec(serverTable_->viewport()->mapToGlobal(pos));
     if (chosen == connectAct)
@@ -426,7 +455,7 @@ void MainWindow::onServerContextMenu(const QPoint& pos) {
 void MainWindow::onConnectClicked() {
     const QString host = hostEdit_->text().trimmed();
     if (host.isEmpty()) {
-        onLog(QStringLiteral("enter a host first"));
+        onLog(tr("enter a host first"));
         return;
     }
     const auto port = static_cast<quint16>(portSpin_->value());
@@ -457,18 +486,18 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
     }
 
     QMenu menu(this);
-    QAction* pause = menu.addAction(QStringLiteral("Pause"));
-    QAction* resume = menu.addAction(QStringLiteral("Resume"));
-    QAction* stop = menu.addAction(QStringLiteral("Stop"));
+    QAction* pause = menu.addAction(tr("Pause"));
+    QAction* resume = menu.addAction(tr("Resume"));
+    QAction* stop = menu.addAction(tr("Stop"));
 
-    QMenu* priorityMenu = menu.addMenu(QStringLiteral("Priority"));
-    QAction* prioLow = priorityMenu->addAction(QStringLiteral("Low"));
-    QAction* prioNormal = priorityMenu->addAction(QStringLiteral("Normal"));
-    QAction* prioHigh = priorityMenu->addAction(QStringLiteral("High"));
-    QAction* prioAuto = priorityMenu->addAction(QStringLiteral("Auto"));
+    QMenu* priorityMenu = menu.addMenu(tr("Priority"));
+    QAction* prioLow = priorityMenu->addAction(tr("Low"));
+    QAction* prioNormal = priorityMenu->addAction(tr("Normal"));
+    QAction* prioHigh = priorityMenu->addAction(tr("High"));
+    QAction* prioAuto = priorityMenu->addAction(tr("Auto"));
 
     menu.addSeparator();
-    QAction* remove = menu.addAction(QStringLiteral("Delete…"));
+    QAction* remove = menu.addAction(tr("Delete…"));
 
     QAction* chosen = menu.exec(table_->viewport()->mapToGlobal(pos));
     if (!chosen)
@@ -503,8 +532,8 @@ void MainWindow::onTableContextMenu(const QPoint& pos) {
         slot = "stop";
     else if (chosen == remove) {
         if (QMessageBox::question(
-                this, QStringLiteral("Delete download"),
-                QStringLiteral("Delete %1 download(s) from the queue?").arg(hashes.size())) !=
+                this, tr("Delete download"),
+                tr("Delete %1 download(s) from the queue?").arg(hashes.size())) !=
             QMessageBox::Yes)
             return;
         slot = "remove";
@@ -521,21 +550,21 @@ void MainWindow::onStatusChanged(ConnStatus status, const QString& detail) {
     QString color;
     switch (status) {
     case ConnStatus::Disconnected:
-        statusLabel_->setText(QStringLiteral("Disconnected"));
+        statusLabel_->setText(tr("Disconnected"));
         break;
     case ConnStatus::Connecting:
-        statusLabel_->setText(QStringLiteral("Connecting to %1…").arg(detail));
+        statusLabel_->setText(tr("Connecting to %1…").arg(detail));
         color = QStringLiteral("#d9a441");
         connecting = true;
         break;
     case ConnStatus::Connected:
-        statusLabel_->setText(QStringLiteral("Connected — daemon %1").arg(detail));
+        statusLabel_->setText(tr("Connected — daemon %1").arg(detail));
         color = QStringLiteral("#4cc06a");
         connected = true;
         speedGraph_->dismissMessage(); // scroll the welcome banner away
         break;
     case ConnStatus::Error:
-        statusLabel_->setText(QStringLiteral("Error: %1").arg(detail));
+        statusLabel_->setText(tr("Error: %1").arg(detail));
         color = QStringLiteral("#d9534f");
         break;
     }
@@ -555,19 +584,19 @@ void MainWindow::onStatusChanged(ConnStatus status, const QString& detail) {
 
 void MainWindow::onStats(Stats stats) {
     speedGraph_->addSample(stats.dlSpeed, stats.ulSpeed);
-    statsLabel_->setText(QStringLiteral("↓ %1   ↑ %2   ed2k %3 users%4")
+    statsLabel_->setText(tr("↓ %1   ↑ %2   ed2k %3 users%4")
                              .arg(humanRate(stats.dlSpeed), humanRate(stats.ulSpeed),
                                   humanCount(stats.ed2kUsers),
-                                  stats.isHighId() ? QStringLiteral("   HighID")
+                                  stats.isHighId() ? tr("   HighID")
                                                    : QString()));
 }
 
 void MainWindow::onConnState(ConnState conn) {
     const QString ed2k = conn.ed2kConnected
-                             ? QStringLiteral("ed2k: %1").arg(conn.ed2kServer)
-                             : QStringLiteral("ed2k: off");
+                             ? tr("ed2k: %1").arg(conn.ed2kServer)
+                             : tr("ed2k: off");
     const QString kad =
-        conn.kadConnected ? QStringLiteral("Kad: on") : QStringLiteral("Kad: off");
+        conn.kadConnected ? tr("Kad: on") : tr("Kad: off");
     netLabel_->setText(QStringLiteral("%1   |   %2").arg(ed2k, kad));
 }
 
@@ -583,8 +612,8 @@ void MainWindow::onAddServer() {
 void MainWindow::onUpdateServers() {
     bool ok = false;
     const QString url = QInputDialog::getText(
-        this, QStringLiteral("Update server list"),
-        QStringLiteral("server.met URL:"), QLineEdit::Normal, QString(), &ok);
+        this, tr("Update server list"),
+        tr("server.met URL:"), QLineEdit::Normal, QString(), &ok);
     if (ok && !url.trimmed().isEmpty())
         QMetaObject::invokeMethod(worker(), "serverUpdateFromUrl",
                                   Qt::QueuedConnection, Q_ARG(QString, url.trimmed()));

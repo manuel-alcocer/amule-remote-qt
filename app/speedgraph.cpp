@@ -201,7 +201,7 @@ void SpeedGraph::paintEvent(QPaintEvent*) {
                          .arg(humanRate(curDown), humanRate(curUp)));
     painter.setPen(QColor(0x66, 0x88, 0x66));
     painter.drawText(area.adjusted(6, 3, -6, -3), Qt::AlignTop | Qt::AlignRight,
-                     QStringLiteral("peak %1").arg(humanRate(peak)));
+                     tr("peak %1").arg(humanRate(peak)));
 }
 
 } // namespace amule

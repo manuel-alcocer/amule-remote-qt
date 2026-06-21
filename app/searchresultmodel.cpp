@@ -59,11 +59,11 @@ QVariant SearchResultModel::headerData(int section, Qt::Orientation orientation,
         return {};
     switch (section) {
     case Name:
-        return QStringLiteral("Name");
+        return tr("Name");
     case Size:
-        return QStringLiteral("Size");
+        return tr("Size");
     case Sources:
-        return QStringLiteral("Sources (complete)");
+        return tr("Sources (complete)");
     default:
         return {};
     }

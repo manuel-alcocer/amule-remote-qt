@@ -29,7 +29,10 @@ add_executable(amule-remote-qt
     speedgraph.cpp
     addserverdialog.h
     addserverdialog.cpp
+    i18n.h
+    i18n.cpp
     resources.qrc
+    i18n.qrc
 )
 
 target_link_libraries(amule-remote-qt PRIVATE ec-core Qt6::Widgets Qt6::Svg)

@@ -87,19 +87,19 @@ QVariant DownloadTableModel::headerData(int section, Qt::Orientation orientation
         return {};
     switch (section) {
     case PartNum:
-        return QStringLiteral("Part#");
+        return tr("Part#");
     case Name:
-        return QStringLiteral("Name");
+        return tr("Name");
     case Status:
-        return QStringLiteral("Status");
+        return tr("Status");
     case Progress:
-        return QStringLiteral("Progress");
+        return tr("Progress");
     case Size:
-        return QStringLiteral("Size");
+        return tr("Size");
     case Speed:
-        return QStringLiteral("Speed");
+        return tr("Speed");
     case Sources:
-        return QStringLiteral("Sources");
+        return tr("Sources");
     default:
         return {};
     }

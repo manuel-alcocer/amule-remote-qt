@@ -2,6 +2,8 @@
 
 #include <array>
 
+#include <QCoreApplication>
+
 #include "ec/codes.h"
 
 namespace amule {
@@ -10,27 +12,27 @@ QString Download::statusLabel() const {
     using namespace amule::ec::status;
     switch (status) {
     case READY:
-        return QStringLiteral("Downloading");
+        return QCoreApplication::translate("Model", "Downloading");
     case EMPTY:
-        return QStringLiteral("Empty");
+        return QCoreApplication::translate("Model", "Empty");
     case WAITING_FOR_HASH:
-        return QStringLiteral("Waiting hash");
+        return QCoreApplication::translate("Model", "Waiting hash");
     case HASHING:
-        return QStringLiteral("Hashing");
+        return QCoreApplication::translate("Model", "Hashing");
     case ERROR:
-        return QStringLiteral("Error");
+        return QCoreApplication::translate("Model", "Error");
     case INSUFFICIENT:
-        return QStringLiteral("Insufficient");
+        return QCoreApplication::translate("Model", "Insufficient");
     case PAUSED:
-        return QStringLiteral("Paused");
+        return QCoreApplication::translate("Model", "Paused");
     case COMPLETING:
-        return QStringLiteral("Completing");
+        return QCoreApplication::translate("Model", "Completing");
     case COMPLETE:
-        return QStringLiteral("Complete");
+        return QCoreApplication::translate("Model", "Complete");
     case ALLOC:
-        return QStringLiteral("Allocating");
+        return QCoreApplication::translate("Model", "Allocating");
     default:
-        return QStringLiteral("Unknown");
+        return QCoreApplication::translate("Model", "Unknown");
     }
 }
 
@@ -45,23 +47,23 @@ QString SourceClient::ipString() const {
 QString SourceClient::stateLabel() const {
     switch (downState & 0xFF) {
     case 0:
-        return QStringLiteral("Downloading");
+        return QCoreApplication::translate("Model", "Downloading");
     case 1:
-        return QStringLiteral("On Queue");
+        return QCoreApplication::translate("Model", "On Queue");
     case 2:
-        return QStringLiteral("Connecting");
+        return QCoreApplication::translate("Model", "Connecting");
     case 3:
-        return QStringLiteral("Requesting");
+        return QCoreApplication::translate("Model", "Requesting");
     case 4:
-        return QStringLiteral("No needed parts");
+        return QCoreApplication::translate("Model", "No needed parts");
     case 5:
-        return QStringLiteral("Connecting via server");
+        return QCoreApplication::translate("Model", "Connecting via server");
     case 6:
-        return QStringLiteral("Too many connections");
+        return QCoreApplication::translate("Model", "Too many connections");
     case 7:
-        return QStringLiteral("Connecting via Kad");
+        return QCoreApplication::translate("Model", "Connecting via Kad");
     case 8:
-        return QStringLiteral("Asked for download");
+        return QCoreApplication::translate("Model", "Asked for download");
     default:
         return QStringLiteral("—");
     }
@@ -70,21 +72,21 @@ QString SourceClient::stateLabel() const {
 QString SourceClient::originLabel() const {
     switch (origin) {
     case 0:
-        return QStringLiteral("Local Server");
+        return QCoreApplication::translate("Model", "Local Server");
     case 1:
-        return QStringLiteral("Remote Server");
+        return QCoreApplication::translate("Model", "Remote Server");
     case 2:
-        return QStringLiteral("Kad");
+        return QCoreApplication::translate("Model", "Kad");
     case 3:
-        return QStringLiteral("Source Exchange");
+        return QCoreApplication::translate("Model", "Source Exchange");
     case 4:
-        return QStringLiteral("Passive");
+        return QCoreApplication::translate("Model", "Passive");
     case 5:
-        return QStringLiteral("Link");
+        return QCoreApplication::translate("Model", "Link");
     case 6:
-        return QStringLiteral("Source Seeds");
+        return QCoreApplication::translate("Model", "Source Seeds");
     case 7:
-        return QStringLiteral("Search Result");
+        return QCoreApplication::translate("Model", "Search Result");
     default:
         return QStringLiteral("—");
     }
@@ -113,11 +115,11 @@ QString Server::address() const {
 QString Server::priorityLabel() const {
     switch (priority) {
     case 0:
-        return QStringLiteral("Normal");
+        return QCoreApplication::translate("Model", "Normal");
     case 1:
-        return QStringLiteral("High");
+        return QCoreApplication::translate("Model", "High");
     case 2:
-        return QStringLiteral("Low");
+        return QCoreApplication::translate("Model", "Low");
     default:
         return QStringLiteral("?");
     }

@@ -54,17 +54,17 @@ QVariant SourceTableModel::headerData(int section, Qt::Orientation orientation,
         return {};
     switch (section) {
     case Client:
-        return QStringLiteral("Client");
+        return tr("Client");
     case Address:
-        return QStringLiteral("Address");
+        return tr("Address");
     case Speed:
-        return QStringLiteral("Speed");
+        return tr("Speed");
     case Downloaded:
-        return QStringLiteral("Downloaded");
+        return tr("Downloaded");
     case State:
-        return QStringLiteral("State");
+        return tr("State");
     case Origin:
-        return QStringLiteral("Origin");
+        return tr("Origin");
     default:
         return {};
     }
