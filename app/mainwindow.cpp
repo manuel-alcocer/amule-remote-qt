@@ -260,7 +260,23 @@ void MainWindow::buildUi() {
     sharedTable->setModel(sharedProxy);
     configureTable(sharedTable, SharedFileModel::Name);
     sharedTable->setSortingEnabled(true);
-    tabs->addTab(sharedTable, QStringLiteral("Shared"));
+
+    auto* sharedTab = new QWidget;
+    auto* sharedLayout = new QVBoxLayout(sharedTab);
+    sharedLayout->setContentsMargins(0, 0, 0, 0);
+    auto* sharedButtons = new QHBoxLayout;
+    auto* reloadSharedBtn = new QPushButton(QIcon(QStringLiteral(":/icons/refresh.svg")),
+                                            QStringLiteral("Refresh"));
+    sharedButtons->addWidget(reloadSharedBtn);
+    sharedButtons->addStretch(1);
+    sharedLayout->addLayout(sharedButtons);
+    sharedLayout->addWidget(sharedTable);
+    tabs->addTab(sharedTab, QStringLiteral("Shared"));
+
+    connect(reloadSharedBtn, &QPushButton::clicked, this, [this] {
+        QMetaObject::invokeMethod(worker(), "reloadShared", Qt::QueuedConnection);
+    });
+    connectedWidgets_ << reloadSharedBtn;
 
     // Preferences tab (Connection + Directories subtabs).
     preferencesPanel_ = new PreferencesPanel;
