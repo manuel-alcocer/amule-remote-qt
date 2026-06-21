@@ -10,6 +10,8 @@ add_library(ec-core STATIC
     ec/client.cpp
     ec/queries.h
     ec/queries.cpp
+    ec/worker.h
+    ec/worker.cpp
     model/model.h
     model/model.cpp
 )
